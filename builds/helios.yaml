@@ -1,0 +1,92 @@
+
+
+name: helios
+
+repository:
+  http://git/pipeline/FluxImageEngine
+
+source_dir:
+  linux: /home/builder/builds/helios
+  windows: C:/code/helios
+
+# -- Global properties
+props:
+  # -- Server Options
+  platform_server:
+    linux: /mnt/isilon2
+    windows: //isilon2
+  platform_arch:
+    linux: x86_64-Linux
+    windows: AMD64-Windows
+
+  cmake_args:
+    linux: -DVFXLIBS_INSTALL=/home/builder/builds/thirdparty -DCMAKE_PREFIX_PATH=/opt/Qt/5.12.3/lib/cmake/ -DCMAKE_INSTALL_PREFIX={install_dir}
+    windows: -G "Visual Studio 2015 Win64" (or something like that)
+
+  # # -- Where to put the damn thing
+  # install_dir:
+  #   /opt/Helios
+
+  # -- SDPM requirements
+  sdpm_archive:
+    linux: sdpm.tar.gz
+    windows: sdpm.zip
+  sdpm_pack:
+    linux: tar -cvzf ../{sdpm_archive}
+    window: 7z a -r ../{sdpm_archive} -w ./*
+  sdpm_rc_contents: |
+    import os
+    import shutil
+    import subprocess
+    import zipfile
+    import platform
+
+    class SdpmRc(SdpmRcBase):
+      """ SDPM Helios Wrapper """
+      def pathEnv(self):
+        return { "PATH": [os.path.join(self._path, "bin")]}
+
+      def launch(self, *args):
+        largs = list(args)
+        return subprocess.call(['FluxImageEngine'], shell=platform.system() == 'Windows')
+  sdpm_temp_dir:
+    /tmp/helios_sdpm_build
+
+# -- Build Management
+build:
+  type: cmake
+
+  env:
+    linux:
+      - CC: /opt/rh/devtoolset-7/root/usr/bin/gcc
+      - CXX: /opt/rh/devtoolset-7/root/usr/bin/g++
+
+  pre_build:
+    windows:
+      - C:/Program Files/.../vsarc64.bat amd64 (or something like that)
+
+  commands:
+    linux:
+      - cmake {cmake_args} {source_dir}
+      - gmake -j16 install
+
+  # -- Additional commands for sdpm wrapping
+  post_build:
+    - mkdir {sdpm_temp_dir}
+    - :COPY {install_dir}/* {sdpm_temp_dir}
+    - cd {sdpm_temp_dir}
+    - :WRITE {sdpm_rc_contents} sdpm.rc
+    - "{sdpm_pack}"
+    - :MOVE ../{sdpm_archive} .
+    - cp -a {sdpm_temp_dir} {SDPM_BUILD_LOCATION}/dev/dist/x86_64-Linux
+    - cd {install_dir}
+    - rm -rf {sdpm_temp_dir}
+
+# -- Deployment Management
+deploy:
+  endpoints:
+    - fluxmad@10.3.14.114:/var/www/fluxrepo/repo/flux_packages/Helios/{platform}
+
+
+  post_commands:
+    - :COPY {platform_server}/resources/sw/packages/helios/

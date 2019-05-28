@@ -1,0 +1,73 @@
+# Build descriptor for flaunch - built with fbuild. So meta.
+
+name: flaunch
+
+repository:
+  http://git/flux/flaunch
+
+#
+# Commands we have to have access to from our current
+# environment. This is useful for things like packaging
+# and otherwise
+#
+local_required:
+  windows:
+    - 7z
+    - msbuild
+  unix:
+    - zip
+    - make
+
+#
+# flaunch Packages we require to run our build
+# processes
+#
+requires: null
+
+# -- Global Properties
+props: null
+
+
+# -- Package Management
+#
+# We package these file directly, as in there
+# is no intermediate step
+#
+build:
+  type: basic
+
+  #
+  # Whatever the repo ignores, so should we
+  # (this is the default)
+  #
+  use_gitignore: true
+
+  # pre_build:
+  #   - ["--sdpm", ":PRINT test additional commands"]
+
+  # post_build_condition: --sdpm
+  # post_build:
+  #   - :PRINT post build time
+
+  # #
+  # # What to include in our build
+  # #
+  # files:
+  #   unix:
+  #     - src
+  #     - flaunch
+  #     - fbuild
+  #     - version.txt
+  #     - endpoints.txt
+  #   windows:
+  #     - src
+  #     - flaunch.bat
+  #     - fbuild.bat
+  #     - version.txt
+  #     - endpoints.txt
+
+  # #
+  # # We just define the launch.json from here
+  # #
+  # launch_json:
+  #   executable: "{path}/flaunch"
