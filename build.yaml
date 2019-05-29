@@ -66,8 +66,8 @@ build:
   #     - version.txt
   #     - endpoints.txt
 
-  # #
-  # # We just define the launch.json from here
-  # #
-  # launch_json:
-  #   executable: "{path}/flaunch"
+  #
+  # We just define the launch.json from here
+  #
+  launch_json:
+    executable: "{path}/flaunch"

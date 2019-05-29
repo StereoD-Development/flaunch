@@ -149,7 +149,7 @@ class BasicBuilder(manage.BuildManager):
                 sys.exit(1)
 
             with open(ljson_path, 'w') as f:
-                json.dump(bf_build['launch_json'].to_dict(), f)
+                json.dump(bf_build['launch_json'].to_dict(), f, sort_keys=True, indent=4)
 
         elif not os.path.exists(ljson_path):
             # Not hyper critical
