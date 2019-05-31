@@ -41,8 +41,13 @@ class _BuildCommand(object):
 
 
     def __str__(self):
+        def _truncate(arg):
+            if len(arg) > 50:
+                arg = arg[:47].strip() + '...'
+            return arg.replace('\r\n', '\n').replace('\n', '|')
+
         detail = self.alias if self.alias else 'COMMAND'
-        return "{}({})".format(detail, ' '.join(self._arguments))
+        return "{}({})".format(detail, ' '.join(map(_truncate, self._arguments)))
 
 
     def _setup(self):
