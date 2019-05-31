@@ -108,7 +108,8 @@ class BuildCommandParser(object):
                 this_command = self.parse(command_info)
                 this_command._setup() # Vital, see the docstring for more
                 logging.debug(str(this_command))
-                this_command.run(self._build_file)
+                with log.log_indent():
+                    this_command.run(self._build_file)
 
             else:
                 logging.critical(

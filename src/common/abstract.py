@@ -22,7 +22,7 @@ class _AbstractFLaunchData(object):
     Abstract class that handles the expansion of values based
     on various input.
     """
-    SEARCH_REGEX = re.compile(r"\{+[^\{]+\}")
+    SEARCH_REGEX = re.compile(r"\{+[^\{|\s]+\}")
 
     def __init__(self, package, path, data):
         self._package = package
@@ -42,16 +42,27 @@ class _AbstractFLaunchData(object):
 
     @property
     def path(self):
+        """
+        :return: The directory to this file (str)
+        """
         return os.path.abspath(os.path.dirname(self._path))
 
 
     @property
     def platform(self):
+        """
+        The python platform we're working with
+        :return: str
+        """
         return platform.system()
 
 
     @property
     def package(self):
+        """
+        The name of the package that this file represents
+        :return: str
+        """
         return self._package
 
 
@@ -64,7 +75,10 @@ class _AbstractFLaunchData(object):
 
     def expand(self, value, env=None, key=None, found=None):
         """
-        Resolve a value as much as needed
+        Resolve a value as much as needed using the environment provided. The
+        environment isn't is the os.environ but a mapping to any number of attributes
+        built via the launch data.
+
         :param value: The value possibly containing attributes to
         be resolved.
         :param env: The environment we're overhauling - this will
@@ -94,7 +108,33 @@ class _AbstractFLaunchData(object):
             for needs_resolve in found_to_resolve:
                 variable = needs_resolve[1:-1]
 
-                if hasattr(self, variable):
+                if ':' in variable:
+                    #
+                    # We have a dictionary lookup
+                    # This only applies to the environment in the event that
+                    # attributes have been supplied
+                    #
+                    keys = variable.split(':')
+                    end_value = env[keys[0]]
+                    for k in keys[1:]:
+                        if not isinstance(end_value, (dict, PlatformDict)):
+                            logging.error(
+                                'Bad dictionary variable expansion for value: {}' \
+                                .format(variable)
+                            )
+                            sys.exit(1) # ??
+                        end_value = end_value[k]
+
+                    from common.utils import string_types
+                    if not isinstance(end_value, string_types):
+                        logging.error(
+                            'Bad value for dictionary variable expansion: {}' \
+                            .format(variable)
+                        )
+
+                    value = value.replace(needs_resolve, end_value)
+
+                elif hasattr(self, variable):
                     # For things like path, platform, etc.
                     value = value.replace(needs_resolve, getattr(self, variable))
 
@@ -104,13 +144,13 @@ class _AbstractFLaunchData(object):
                 elif variable.upper() in env:
                     value = value.replace(needs_resolve, env[variable.upper()])
 
-        #
-        # Recursive expansion!
-        #
         if found is None:
             found = set()
 
         def _continual_expansion(val):
+            #
+            # Recursive expansion!
+            #
             still_to_resolve = _AbstractFLaunchData.SEARCH_REGEX.findall(val)
 
             for sub_val in still_to_resolve:

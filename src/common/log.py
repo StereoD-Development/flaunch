@@ -9,16 +9,25 @@ import logging
 from contextlib import contextmanager
 
 # -- Defaults and Globals
-MESSAGE_FORMAT = '[%(asctime)s - %(levelname)s]: {}%(message)s'
+MESSAGE_FORMAT = '[%(asctime)s - %(levelname)s!tabme!]: {}%(message)s'
 DATETIME_FORMAT = '%d/%m/%Y %I:%M:%S %p'
-DEFAULT_FORMAT = logging.Formatter(
-    fmt=MESSAGE_FORMAT.format(''),
-    datefmt=DATETIME_FORMAT
-)
 DEFAULT_HANDLER = None
 FILE_HANDLER = None
 
 CURRENT_INDENT = 0
+
+class FLaunchFormater(logging.Formatter):
+
+    def format(self, record):
+        s = super(FLaunchFormater, self).format(record)
+        idx = s.index('!tabme!')
+        s = s.replace('!tabme!', ' ' * (32 - idx))
+        return s
+
+DEFAULT_FORMAT = FLaunchFormater(
+    fmt=MESSAGE_FORMAT.format(''),
+    datefmt=DATETIME_FORMAT
+)
 
 def start(verbose, output_file=None):
     """
@@ -55,7 +64,7 @@ def log_indent():
     global CURRENT_INDENT
 
     CURRENT_INDENT += 4
-    indented_format = logging.Formatter(
+    indented_format = FLaunchFormater(
         fmt=MESSAGE_FORMAT.format(' '*CURRENT_INDENT),
         datefmt=DATETIME_FORMAT
     )
@@ -65,7 +74,7 @@ def log_indent():
 
     yield
     CURRENT_INDENT -= 4
-    right_format = logging.Formatter(
+    right_format = FLaunchFormater(
         fmt=MESSAGE_FORMAT.format(' '*CURRENT_INDENT),
         datefmt=DATETIME_FORMAT
     )
