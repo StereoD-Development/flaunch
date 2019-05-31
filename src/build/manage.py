@@ -113,6 +113,8 @@ class BuildManager(object):
         Run the full extent of the build. This includes any pre and post
         commands.
         """
+        os.chdir(self.build_dir)
+
         self._prerequisite_check()
 
         self._pre_build_commands()

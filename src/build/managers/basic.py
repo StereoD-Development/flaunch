@@ -73,7 +73,12 @@ class BasicBuilder(manage.BuildManager):
 
         if os.path.exists(build_path):
             logging.info('Clear old data...')
-            shutil.rmtree(build_path)
+            for p in os.listdir(build_path):
+                fp = os.path.join(build_path, p)
+                if os.path.isdir(fp):
+                    shutil.rmtree(fp)
+                else:
+                    os.unlink(fp)
 
         build_root = build_path
 
