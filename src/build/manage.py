@@ -68,6 +68,15 @@ class BuildFile(_AbstractFLaunchData):
         return ''
 
 
+    def add_attribute(self, key, value):
+        """
+        Add an attribute to our properties
+        """
+        if self['props'] is None:
+            self._data.update({'props' : {}})
+        self._data['props'].update({key : value})
+
+
     def attributes(self):
         """
         For variable expansion, we handle it at the build file level
@@ -158,6 +167,11 @@ class BuildManager(object):
     @property
     def build_file(self):
         return self._build_file
+
+
+    @property
+    def additional(self):
+        return self._additional
 
 
     @classmethod

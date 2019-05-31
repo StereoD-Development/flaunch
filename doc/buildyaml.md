@@ -1,5 +1,5 @@
-Creating fbuild files
-=====================
+build.yaml
+==========
 
 The `fbuild` command helps merge the worlds of building a package, testing it in development and production environments, along with deployment when required.
 
@@ -19,8 +19,9 @@ Rather than creating complicated python build scripts for everything or handling
     * [Platform Based](#platform-based)
         * [Unix](*unix)
     * [props:](#props)
+* [General Options](#general-options)
+    * [Pre and Post Operations](#pre-and-post-operations)
 * [Build Types](#build-types)
-    * [basic](#type-basic)
 
 # Starting Out
 Let's build a simple package to work with `fbuild`
@@ -164,7 +165,7 @@ Now that we have some of the basics down, let's talk about some of the features 
 ## Variable Expansion
 Because builds are often complex, we have made sure `build.yaml` and `launch.json` are template-able, and have many ways of reducing the overhead between platforms and packages.
 
-One of the biggest way we do that is variable expansion. By use the syntax of `{<keyword>}`, we declare to the toolkit that we want it to search our current environment, and possibly [`props:`](#props:), for the value to inject.
+One of the biggest way we do that is variable expansion. By using the syntax of `{<keyword>}`, we declare to the toolkit that we want it to search our current environment, and possibly [`props:`](#props:), for the value to inject.
 
 Given the following:
 
@@ -179,11 +180,27 @@ The toolkit, on Unix platforms, would convert that to `/home/my_username/bar`
 * `{path}`: Path to the package (source files for `build.yaml` and package dir for `launch.json`)
 * `{platform}` : Python platform.system() that the command is being run from
 * `{package}` : Name of this package
+* `{source_dir}` : The directory our code is in
+* `{build_dir}` : The directory our build will be placed into
 
-## Platform Based
+### Recursive Expansion
+This expansion process is even recursive.
+
+```yaml
+first_var: {second_var}/foo
+second_var: hard_value
+
+# ...
+
+third_var: {first_var}/bar
+# third_var == hard_value/foo/bar
+```
+This means you can get very in depth with your variable control. Just be careful not to introduce a cyclic dependency. `fbuild` will detect this and fail immediately.
+
+## Platform Routing
 In the example above, we used `{home}/bar` which search our environment for `HOME` and expanded as needed. This will work fine for Unix machines but won't work on Windows unless we set the environment variable ourselves (or pass it to props).
 
-For both the `build.yaml` and `launch.json`, the dictionary they build will auto route based on the platform you're using. This is based on the `import platform; platform.system()` that python returns.
+For both the `build.yaml` and `launch.json`, the dictionary they build will "auto route" based on the platform you're using. This is based on the `import platform; platform.system()` that python returns.
 
 So let's augment our example from above:
 
@@ -196,11 +213,11 @@ proper_dir:
 
 This will now expand properly for both platforms.
 
-> Tip: This method can be used _anywhere_. You can even use it to change the build type if required.
+> Tip: Platform routing can be used _anywhere_! You can even use it to change the build type if required. (Although that is a little crazy)
 
 ### Unix
 
-> Tip: Because Linux and macOS are typically similar processes, you can use `unix` as a representation for both platforms.
+> Tip: Because Linux, macOS, and other posix systems are typically a similar processes, you can use `unix` as a representation for any unix machine.
 
 ## props:
 The root of our `build.yaml` can contains a `props:` key which should point to a dictionary of additional data we may need while building and can be used for [Variable Expansion](#variable-expansion).
@@ -211,7 +228,7 @@ name: MyPackage
 props:
   tar_command:
     windows: 7z cfz
-    linux: tar -czf
+    unix: tar -czf
 
 build:
   type: basic
@@ -225,13 +242,75 @@ In this example, as `fbuild` does the build, `{tar_command}` will expand to the 
 ## A Note On Paths
 Paths are complicated and often a pain point for development routines. When writing `build.yaml` files, _always_ use forward slashes (`/`) to allow for simpler parsing and common, readable code.
 
+# General Options
+The `build:` section, no matter what `type:` you need, handles a few additional keywords for managing your build.
+
+* `launch_json`: The launch json dictionary that we want to use (see [above](#launchjson))
+* `local_required`: A list of required application that the build tools must be able to use from the commands line. On Windows this runs `where <command>` while posix will execute `which <command>`. If no error code comes back it is assumed to be reachable.
+
+   ```yaml
+   local_required:
+     windows:
+       - 7z
+       - msbuild
+     unix:
+       - zip
+       - make
+   ```
+
+## Pre and Post Operations
+When executing, we may want to run some tasks before and after our build procedure. This can be done using [Command Lists](doc/build_commands.md).
+
+> Tip: Go read up on [commands](doc/build_commands.md)! They're pretty cool! And they will come in handy. Not to mention this next part won't make any real sense until you do.
+
+Once you have a basic grasp on how commands work, take a look at the following example.
+```yaml
+props:
+  put_foo_here:
+    windows: C:/temp
+    unix: /tmp
+
+  use_email: foo@mycomp.com
+
+  send_email_script: |
+    import sendmail
+    sendmail(email={use_email}, "Build for {package} on {platform} completed!")
+
+build:
+  type: basic
+
+  # -- Pre Build Work
+  #
+  # Copy a file, read said file into a prop, and then print it out
+  # to the user
+  #
+  pre_build_condition: --run-prebuild
+  pre_build:
+    - ":COPY -m -f {source_dir}/src/some_info.txt {put_foo_here}/foo.txt"
+    - ":READ {put_foo_here}/foo.txt read_data"
+    - ":PRINT {read_data}" # "echo {read_data}" would also be the same
+
+  # -- Post Build Work
+  #
+  # Send an email if the environment variable SEND_EMAIL is set to "True"
+  #
+  post_build:
+    - clause: 'env_set("send_email")'
+      commands:
+        - ":PYTHON send_email_script"
+```
+
+There's a lot going on there but it's quite useful for handling many of our usual tasks without having to write multiple scripts to do so
+
+* `pre_build_condition`: A basic condition that looks for an argument in our initial `fbuild` command
+    * In the example, this looks for `--run-prebuild`
+* `pre_build`: A Command List that we'll execute if `pre_build_condition` is null, not provided, or resolves to true.
+    * In the example, we have a few `fbuild` commands that copy a file, read said file into a property, and then print that to our user
+* `post_build_condition`: A basic condition that looks for the argument in our initial `fbuild` command
+    * In the example, we didn't provide this so it will always resolve to `True`
+* `post_build`: A Command List that we'll execute if `post_build_condition` is null, not provided, or resolves to true.
+    * In the example, we have a dictionary command that checks is an environment variable is set by using the built in function `env_set`
+
 # Build Types
-Currently we support a few major build types.
 
-## type: basic
-The simplest build type but also the most flexible. Be default it's just a copy machine for files in your source directory. This is usually enough for most development to take place.
-
-When using the build type `basic`, you have the following options available to you:
-
-* `use_gitignore: (bool)`: By default `fbuild` will search your source directory for a `.gitignore` file and utilize that for finding ignore patterns when copying files. If you want to forgo this behavior, set this to `false`
-
+* [basic](doc/build_type_basic.md)

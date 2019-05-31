@@ -18,6 +18,23 @@ from .command import _BuildCommand
 # (TODO: Eventual plugin system for commands)
 from .commands import *
 
+# -------------------------------------------------------------------
+# FIXME: Need to lift these somewhere they can be auto documented and
+# expanded upon
+
+def env_check(env, value):
+    return (os.environ.get(env.upper(), None) is value)
+
+def env_set(env):
+    return (os.environ.get(env.upper(), None) is not None)
+
+local_commands = {
+    'env_check' : env_check,
+    'env_set' : env_set
+}
+
+# -------------------------------------------------------------------
+
 class BuildCommandParser(object):
     """
     Utility for parsing and understanding a command. This will handle
@@ -92,7 +109,7 @@ class BuildCommandParser(object):
                     #
                     if command_info_raw.get('clause'):
                         python_to_eval = self._build_file.expand(command_info_raw['clause'])
-                        if not (eval(python_to_eval)):
+                        if not (eval(python_to_eval, local_commands)):
                             return # - Didn't work
 
                     self._exec_internal(commands_from_dict)

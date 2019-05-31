@@ -216,3 +216,55 @@ class WriteCommand(_BuildCommand):
             raise RuntimeError("Could not open file: {} - {}".format(
                 self.data.file, str(e)
             ))
+
+
+class ReadCommand(_BuildCommand):
+    """
+    The other side of the WRITE command. Push information into a property
+    that can be injected into other variables later
+    """
+    alias = 'READ'
+
+    def description(self):
+        return 'Read data from a file - Careful! This is not built for large files'
+
+
+    def populate_parser(self, parser):
+        """
+        We require a file to read and the property to inject the read
+        information into
+        """
+        parser.add_argument(
+            '-b', '--read-bytes',
+            help='Open the file as a bytes object'
+        )
+        parser.add_argument(
+            'file',
+            help='The file that we want to read from'
+        )
+        parser.add_argument(
+            'property',
+            help='The property name to store the new information into'
+        )
+
+
+    def run(self, build_file):
+        """
+        Read our file!
+        """
+        read_type = 'rb' if self.data.read_bytes else 'r'
+
+        logging.info('Reading file: {} -> PROPERTY({})'.format(
+            self.data.file, self.data.property
+        ))
+
+        d = None
+        try:
+            with open(self.data.file, read_type) as f:
+                d = f.read()
+        except OSError as e:
+            raise RuntimeError("Could not read file: {} - {}".format(
+                self.data.file, str(e)
+            ))
+
+        build_file.add_attribute(self.data.property, d)
