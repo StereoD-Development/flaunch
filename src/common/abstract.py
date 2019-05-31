@@ -62,7 +62,7 @@ class _AbstractFLaunchData(object):
         return PlatformDict()
 
 
-    def expand(self, value, env=None, key=None):
+    def expand(self, value, env=None, key=None, found=None):
         """
         Resolve a value as much as needed
         :param value: The value possibly containing attributes to
@@ -103,6 +103,36 @@ class _AbstractFLaunchData(object):
 
                 elif variable.upper() in env:
                     value = value.replace(needs_resolve, env[variable.upper()])
+
+        #
+        # Recursive expansion!
+        #
+        if found is None:
+            found = set()
+
+        def _continual_expansion(val):
+            still_to_resolve = _AbstractFLaunchData.SEARCH_REGEX.findall(val)
+
+            for sub_val in still_to_resolve:
+                if sub_val in found:
+                    logging.critical('Potential cyclic variable expansion detected!')
+                    with log.log_indent():
+                        logging.critical('Attempted to expand: "{}"'.format(val))
+                    sys.exit(1)
+                found.add(sub_val)
+
+            if still_to_resolve:
+                return self.expand(val, env, found=found)
+            return val
+
+        if isinstance(value, list):
+            resolved = []
+            for v in value:
+                resolved.append(_continual_expansion(v))
+            value = resolved
+        else:
+            value = _continual_expansion(value)
+
 
         if key is not None:
             if should_append:
