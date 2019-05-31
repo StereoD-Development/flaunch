@@ -2,12 +2,15 @@
 Utilities for handling platforms and expanding variables
 based on environment.
 """
+from __future__ import absolute_import
+
 import re
 import os
 import sys
 import logging
 
 from .platformdict import PlatformDict
+from . import log
 
 class FLaunchDataError(Exception):
     """ Error related to booting up a flaunch data """
@@ -53,7 +56,10 @@ class _AbstractFLaunchData(object):
 
 
     def attributes(self):
-        return {}
+        """
+        :return: PlatformDict
+        """
+        return PlatformDict()
 
 
     def expand(self, value, env=None, key=None):
@@ -84,12 +90,16 @@ class _AbstractFLaunchData(object):
         else:
 
             found_to_resolve = _AbstractFLaunchData.SEARCH_REGEX.findall(value)
+
             for needs_resolve in found_to_resolve:
                 variable = needs_resolve[1:-1]
 
                 if hasattr(self, variable):
                     # For things like path, platform, etc.
                     value = value.replace(needs_resolve, getattr(self, variable))
+
+                elif variable in env:
+                    value = value.replace(needs_resolve, env[variable])
 
                 elif variable.upper() in env:
                     value = value.replace(needs_resolve, env[variable.upper()])

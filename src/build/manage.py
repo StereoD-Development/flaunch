@@ -1,24 +1,34 @@
 """
 Management tools for building/deploying things
 """
+from __future__ import absolute_import
+
 import os
 import sys
 import platform
+import subprocess
 import logging
+import traceback
+import json
+from copy import deepcopy
 
 import yaml
 
 from common.platformdict import PlatformDict
 from common.abstract import _AbstractFLaunchData, FLaunchDataError
+from common import log
 from common import utils
 from common import constants
+
+from .parse import BuildCommandParser
+
 
 class BuildFile(_AbstractFLaunchData):
     """
     A build file describes the processes required for constructing and
     deploying packages with flaunchdev
     """
-    def __init__(self, package, path):
+    def __init__(self, package, path, manager=None):
         try:
             with open(path) as f:
                 d = yaml.safe_load(f)
@@ -28,21 +38,41 @@ class BuildFile(_AbstractFLaunchData):
             raise FLaunchDataError(str(e))
 
         _AbstractFLaunchData.__init__(self, package, path, data)
+        self._build_manager = None
+
+    def set_manager(self, manager):
+        """
+        Link ourselves back to a build manager
+        :param manager: The BuildManager that owns this item
+        """
+        self._build_manager = manager
+
+    @property
+    def build_dir(self):
+        if self._build_manager:
+            return self._build_manager.build_dir
+        return ''
+
+
+    @property
+    def install_path(self):
+        if self._build_manager:
+            return self._build_manager.install_path
+        return ''
+
+
+    @property
+    def source_dir(self):
+        if self._build_manager:
+            return self._build_manager.source_dir
+        return ''
 
 
     def attributes(self):
         """
         For variable expansion, we handle it at the build file level
         """
-        return self['props'] or {}
-
-
-class BuildCommandParser(object):
-    """
-    Utility for parsing and understanding a command. This will handle
-    the various types of commands as well as the 
-    """
-    pass
+        return deepcopy(self['props']) or PlatformDict()
 
 
 class BuildManager(object):
@@ -65,6 +95,7 @@ class BuildManager(object):
         self._additional  = arguments.additional_arguments
         self._build_file  = build_file
         self._source_dir  = source_dir or build_file.path
+        self._build_file.set_manager(self)
 
     # -- Registration
 
@@ -82,18 +113,39 @@ class BuildManager(object):
         Run the full extent of the build. This includes any pre and post
         commands.
         """
+        self._prerequisite_check()
+
         self._pre_build_commands()
+
         self.build()
+
         self._post_build_commands()
 
     @property
     def source_dir(self):
-        return self._source_dir
+        return self._source_dir.replace('\\', '/')
 
 
     @property
     def development_path(self):
         return utils.local_path(self.package, version='dev')
+
+
+    @property
+    def build_dir(self):
+        bf_build = self.build_file['build'] # type: PlatformDict
+        if bf_build['build_path']:
+            build_path = self.build_file.expand(bf_build['build_path'])
+        elif os.environ.get(constants.FLAUNCH_BUILD_DIR, None):
+            build_path = os.path.join(os.environ[constants.FLAUNCH_BUILD_DIR], self.package)
+        else:
+            build_path = self.development_path
+        return build_path.replace('\\', '/')
+
+
+    @property
+    def install_path(self):
+        raise NotImplementedError('FUTURE')
 
 
     @property
@@ -128,7 +180,10 @@ class BuildManager(object):
 
         for _cls in BuildManager.registry:
             if hasattr(_cls, 'alias') and _cls.alias == build_type:
-                return _cls(package, arguments, build_data, source_dir)
+                return _cls(package,
+                            arguments,
+                            build_data,
+                            source_dir=source_dir)
 
         logging.critical('Cannot find build a build manager')
 
@@ -147,6 +202,32 @@ class BuildManager(object):
             'build.yaml'
         )
 
+    # -- "Protected" methodM
+
+    def create_launch_json(self, build_path):
+        """
+        Create a launch.json file within our build directory.
+        Uses the 'launch_json' key if available 
+        """
+        bf_build = self._build_file['build']
+
+        ljson_path = os.path.join(build_path, 'launch.json')
+        if bf_build['launch_json']:
+            if not isinstance(bf_build['launch_json'], PlatformDict):
+                logging.critical('launch_json must be a JSON compliant dictionary!')
+                with log.log_indent():
+                    s = traceback.format_stack()
+                    map(logging.critical, s)
+                sys.exit(1)
+
+            with open(ljson_path, 'w') as f:
+                json.dump(bf_build['launch_json'].to_dict(), f, sort_keys=True, indent=4)
+
+        elif not os.path.exists(ljson_path):
+            # Not hyper critical
+            logging.warning('launch.json file not found! Expect issues when launching!')
+
+
     # -- Virtual Interface
 
     def build(self):
@@ -157,15 +238,110 @@ class BuildManager(object):
 
     # -- Private Methods
 
+    def _prerequisite_check(self):
+        """
+        In the event our action requires select software to be available
+        from it's root environment, we call that here.
+
+        Perhaps in the future we could also include "modules" for finding
+        basic tools and items.
+        """
+        prereq = self.build_file['build']['local_required']
+        if not prereq:
+            prereq = ['git']
+        else:
+            logging.debug('Searching for prerequisites...')
+
+        if not isinstance(prereq, (list, tuple)):
+            logging.warning('build.yaml build -> local_required must be a list')
+            return
+
+
+        command = PlatformDict.simple({
+            'windows' : 'where',
+            'unix' : 'which'
+        })
+
+        def _clean_path(p):
+            d = p.decode('utf-8').replace("\r\n", "\n")
+            d = d.split("\n")[0].replace("\\", "/")
+            return d
+
+        with log.log_indent():
+            for requirement in prereq:
+                proc = subprocess.Popen(
+                    [command, requirement],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+                information = proc.communicate()[0]
+                if proc.returncode != 0:
+                    logging.critical(
+                        'Could not find prerequisite: {}'.format(requirement)
+                    )
+                    sys.exit(1)
+                else:
+                    if requirement == 'git':
+                        continue # quite, this is always needed
+
+                    logging.debug('{} found at: "{}"'.format(
+                        requirement,
+                        _clean_path(information)
+                    ))
+
+
+    def _build_commands(self, condition, build_data, type_):
+        """
+        General method for 
+        """
+        if build_data:
+
+            ok = condition is None  # False if conditions required
+            if condition:
+                logging.debug('Checking {} Build Conditions...'.format(type_))
+
+                if not isinstance(condition, (list, tuple)):
+                    condition = (condition,)
+
+                # http://book.pythontips.com/en/latest/for_-_else.html
+                for c in condition:
+                    if c not in self._additional:
+                        break;
+                else:
+                    # We're good to run!
+                    ok = True
+
+            if ok:
+                logging.debug('Start {} Build Execution...'.format(type_))
+                parser = BuildCommandParser(
+                    build_data, self.build_file, self._additional
+                )
+
+                try:
+                    parser.exec_()
+                except Exception as e:
+                    logging.critical('Encountered a critical failure!')
+                    with log.log_indent():
+                        list(map(logging.critical, traceback.format_exc().split('\n')))
+                    sys.exit(1)
+
+
+
     def _pre_build_commands(self):
         """
         Using the build file, identify if we have any commands to process
         with our environment and then do it!
         :return: None
         """
-        build_descrpitor = self.build_file['build']
 
-        # if build_descrpitor['pre_build_conditions']:
+        logging.debug(':Pre Build:')
+        with log.log_indent():
+
+            build_descrpitor = self.build_file['build']
+
+            condition = build_descrpitor['pre_build_conditions']
+            pre_build = build_descrpitor['pre_build']
+            self._build_commands(condition, pre_build, 'Pre')
 
 
     def _post_build_commands(self):
@@ -176,5 +352,11 @@ class BuildManager(object):
         """
         build_descrpitor = self.build_file['build']
 
-        # if build_descrpitor['post_build_conditions']:
-            
+        logging.debug(':Post Build:')
+        with log.log_indent():
+
+            build_descrpitor = self.build_file['build']
+
+            condition = build_descrpitor['post_build_conditions']
+            post_build = build_descrpitor['post_build']
+            self._build_commands(condition, post_build, 'Post')

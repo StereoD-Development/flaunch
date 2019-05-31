@@ -2,6 +2,7 @@
 Tools for grabbing packages from our repo and working out the environment
 for a list of packages
 """
+from __future__ import absolute_import
 
 import os
 import sys
@@ -55,18 +56,47 @@ def _extract(zipfile_path):
     zip_ref.close()
 
 def _get_package_and_version(package):
+    """
+    Split a package and it's version (if a version is provided)
+
+    :param package: The full package string
+    :return: tuple(str, str) -> (pacakge, version)
+
+    - examples
+
+        PyFlux -> (PyFlux, None)
+        PyFlux/1.1.0 -> (PyFlux, 1.1.0)
+        PyFlux/dev -> (PyFlux, dev)
+    """
     version = None
     if '/' in package:
         package, version = package.split('/')
     return (package, version)
 
-def _get_package(package, version=None, info=None, repos=[]):
+def _get_package(package, version=None, info=None, builds=[], force=False):
     """
     Get a particular package
+    :param package: The name of the package as atom knows it (case insenitive)
+    :param version: The version of the package that we're looking for (None for highest)
+    :param info: The information block that we use intead of the one coming from atom
+    :param builds: locations to search for development builds
+    :param force: Boolean - should we redownload pacakges that we already have installed?
+    :return utils.LaunchJson() instance
     """
     logging.debug("Package version: " + (version if version else '<highest>'))
 
-    if info is None:
+    is_dev = version == 'dev'
+
+    if is_dev:
+        info = {
+            'pacakge_name' : package,
+            'type' : 'file',
+            'uri' : None,
+            'version' : 'dev',
+            'filename' : None
+        }
+
+    elif info is None:
         info = communicate.get_package_info(package, version=version)
 
     if info is None:
@@ -74,16 +104,34 @@ def _get_package(package, version=None, info=None, repos=[]):
 
     # -- Based on the information, we need to check on the version
     # and see if we already have it!
-    is_dev = info['version'] == 'dev'
     path = utils.local_path(package, info['version'])
 
     launch_json = None
+
     if is_dev:
-        for repo_location in repos:
-            p = os.path.join(repo_location, package, 'launch.json')
+        #
+        # Development pacakges are a special case. First, we check
+        # if a local build can be found
+        #
+
+        for build_location in builds:
+            p = os.path.join(build_location, package, 'launch.json')
             if os.path.exists(p):
                 launch_json = p
-    
+
+        if is_dev and not launch_json:
+            #
+            # We're trying to run a development package but we don't have
+            # a build in our build directories. We can check Atom to see
+            # if a development version exists. If it does, we want to try
+            # and reinstall said development version to make it so we can
+            # continually test something.
+            #
+            info = communicate.get_package_info(package, version=version)
+            if info is None:
+                sys.exit(1)
+
+
     if launch_json is None:
         launch_json = os.path.join(path, 'launch.json')
 
@@ -108,7 +156,7 @@ def _get_package(package, version=None, info=None, repos=[]):
 
     return utils.LaunchJson(package, launch_json)
 
-def resolve_packages(package_list, retrieved, repos=[]):
+def resolve_packages(package_list, retrieved, builds=[]):
     """
     Given a set of packages, unwrap the requirements
     """
@@ -133,7 +181,7 @@ def resolve_packages(package_list, retrieved, repos=[]):
         logging.debug('Resolve: {}'.format(package))
         package, version = _get_package_and_version(package)
 
-        current_launch = _get_package(package, version, repos=repos)
+        current_launch = _get_package(package, version, builds=builds)
 
         requirements = current_launch.requires();
         if requirements:

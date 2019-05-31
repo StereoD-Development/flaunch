@@ -1,7 +1,7 @@
 """
 Entry point for running applicaitons/prepping environments
 """
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 
 __version__ = "1.0.0"
 
@@ -207,6 +207,7 @@ def build_parser():
     parser = argparse.ArgumentParser(description="Launch an application with possible flux packages")
     parser.add_argument('-v', '--verbose', action='store_true', help="Give feedback while working")
     parser.add_argument('-l', '--log', help="Push logging information to a file")
+    parser.add_argument('-f', '--force', help="Force redownload any packages that this command uses")
     subparsers = parser.add_subparsers(help="Commands for flaunch")
 
     launch_parser = subparsers.add_parser('launch', help="Launch an applicaiton")

@@ -1,6 +1,7 @@
 """
 CMake specific build manager
 """
+from __future__ import absolute_import
 
 from build import manage
 

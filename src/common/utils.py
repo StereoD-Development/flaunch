@@ -1,6 +1,7 @@
 """
 Build management utilities
 """
+from __future__ import absolute_import
 
 import re
 import os
@@ -21,9 +22,11 @@ SYSTEM = platform.system()
 if PY3:
     def _iter(it):
         return it.items()
+    string_types = str
 else:
     def _iter(it):
         return it.iteritems()
+    string_types = (str, basestring)
 
 class LaunchJson(_AbstractFLaunchData):
     """
@@ -67,10 +70,10 @@ def run_(command_and_args, custom_env = {}, verbose = False):
     env = dict(os.environ, **custom_env)
     os.environ.update(env)
 
-    if not isinstance(command_and_args, list):
+    if not isinstance(command_and_args, (list, tuple)):
         full_command = shlex.split(command_and_args)
     else:
-        full_command = command_and_args
+        full_command = list(command_and_args)
 
     for i, c in enumerate(full_command):
         if re.match("^\"[^\"]\"^", c):
@@ -116,3 +119,18 @@ def local_path(package, version=None, base_only=False):
         return os.path.join(base, package).replace('\\', '/')
 
     return os.path.join(base, package, version).replace('\\', '/')
+
+
+def add_metaclass(metaclass):
+    """
+    Taken from the six module. Python 2 and 3 compatible.
+    """
+    def wrapper(cls):
+        """
+        The actual wrapper. take the given class and return one that contains the proper metaclass.
+        """
+        orig_vars = cls.__dict__.copy()
+        orig_vars.pop('__dict__', None)
+        orig_vars.pop('__weakref__', None)
+        return metaclass(cls.__name__, cls.__bases__, orig_vars)
+    return wrapper

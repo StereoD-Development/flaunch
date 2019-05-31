@@ -20,9 +20,7 @@ Rather than creating complicated python build scripts for everything or handling
         * [Unix](*unix)
     * [props:](#props)
 * [Build Types](#build-types)
-    * [basic](#basic)
-        * [use_gitignore](#use_gitignore)
-
+    * [basic](#type-basic)
 
 # Starting Out
 Let's build a simple package to work with `fbuild`
@@ -224,11 +222,16 @@ build:
 
 In this example, as `fbuild` does the build, `{tar_command}` will expand to the `prop: tar_command` of which that value will be based on the platform we're building with. Awesome!
 
+## A Note On Paths
+Paths are complicated and often a pain point for development routines. When writing `build.yaml` files, _always_ use forward slashes (`/`) to allow for simpler parsing and common, readable code.
+
 # Build Types
 Currently we support a few major build types.
 
 ## type: basic
-When using the build type `basic`, you have the following options:
+The simplest build type but also the most flexible. Be default it's just a copy machine for files in your source directory. This is usually enough for most development to take place.
 
-### use_gitignore
-By default `fbuild` will search your source directory for a `.gitignore` file and utilize that 
+When using the build type `basic`, you have the following options available to you:
+
+* `use_gitignore: (bool)`: By default `fbuild` will search your source directory for a `.gitignore` file and utilize that for finding ignore patterns when copying files. If you want to forgo this behavior, set this to `false`
+

@@ -1,6 +1,7 @@
 """
 Entry point fot the build/deployment tools
 """
+from __future__ import absolute_import
 
 import os
 import sys
@@ -9,6 +10,8 @@ import logging
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from build import manage
+from build import command
+from common import utils
 from common import log
 
 full_description = """Building and deployment toolkit for the Flux ecosystem
@@ -28,6 +31,7 @@ def _build(args):
     manager.run_build()
     logging.info('Build Complete')
 
+
 def _deploy(args):
     """
     The entry point for the deploy toolkit
@@ -37,11 +41,29 @@ def _deploy(args):
     pass
 
 
+def _commands(args):
+    """
+    Internal commands utility
+    :param args: The args namespace object our parser returns
+    :return: None
+    """
+    if args.docs:
+        #
+        # Print the documentation omn each of the commands we know about
+        #
+        print ("Available Commands:")
+        for _, command_class in utils._iter(command._BuildCommand._registry):
+            inst = command_class([])
+            print ("")
+            print ("{0}\n{1}\n{2}".format("--"*25, inst.alias, '-'*len(inst.alias)))
+            inst._parser.print_help()
+
+
 def build_parser():
     """
     Construct the parser that handles all things related to building/deploying things
     """
-    parser = argparse.ArgumentParser(description=full_description)
+    parser = argparse.ArgumentParser(prog='fbuild', description=full_description)
     parser.add_argument('-v', '--verbose', action='store_true', help='Chatty feedback when running')
     subparsers = parser.add_subparsers(help='Commands that can be run')
 
@@ -62,6 +84,10 @@ def build_parser():
     deployer = subparsers.add_parser('deploy', help='Deployment toolkit')
     deployer.add_argument('package', help='The package we\'re deploying')
     deployer.set_defaults(func=_deploy)
+
+    helper = subparsers.add_parser('commands', help='Internal fbuild command utils')
+    helper.add_argument('-d', '--docs', action='store_true', help='Print all known commands and their arguments')
+    helper.set_defaults(func=_commands)
 
     return parser
 

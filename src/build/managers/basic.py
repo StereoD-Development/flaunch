@@ -1,6 +1,8 @@
 """
 Basic buid manager
 """
+from __future__ import absolute_import
+
 import os
 import sys
 import shutil
@@ -65,12 +67,7 @@ class BasicBuilder(manage.BuildManager):
         #
         # Where are we putting this item?
         #
-        if bf_build['build_path']:
-            build_path = self.build_file.expand(bf_build['build_path'])
-        elif os.environ.get(FLAUNCH_BUILD_DIR, None):
-            build_path = os.path.join(os.environ[FLAUNCH_BUILD_DIR], self.package)
-        else:
-            build_path = self.development_path
+        build_path = self.build_dir
 
         logging.info('Build Path: {}'.format(build_path))
 
@@ -139,21 +136,6 @@ class BasicBuilder(manage.BuildManager):
         # The launch.json file is used for understanding package requirements
         # and building environments.
         #
-        ljson_path = os.path.join(build_path, 'launch.json')
-        if bf_build['launch_json']:
-            if not isinstance(bf_build['launch_json'], PlatformDict):
-                logging.critical('launch_json must be a JSON compliant dictionary!')
-                with log.log_indent():
-                    s = traceback.format_stack()
-                    map(logging.critical, s)
-                sys.exit(1)
-
-            with open(ljson_path, 'w') as f:
-                json.dump(bf_build['launch_json'].to_dict(), f, sort_keys=True, indent=4)
-
-        elif not os.path.exists(ljson_path):
-            # Not hyper critical
-            logging.warning('launch.json file not found! Expect issues when launching!')
-
+        self.create_launch_json(build_path)
 
 manage.BuildManager.register(BasicBuilder)

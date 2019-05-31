@@ -1,6 +1,7 @@
 """
 Logging utility for the build routines
 """
+from __future__ import absolute_import
 
 import sys
 import logging
