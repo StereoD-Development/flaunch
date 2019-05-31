@@ -66,7 +66,7 @@ class PythonCommand(_BuildCommand):
 
         else:
             # The code is within the build file
-            code = attrs[self.data.code]
+            code = build_file.expand(attrs[self.data.code])
 
         _execute_into_module(
             code,
