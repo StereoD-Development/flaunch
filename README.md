@@ -28,6 +28,7 @@ more is this process can recurse further and further untill all packages are loa
 
 
 # Build
+This is better left to some of the more formal [Documentation](doc/buildyaml.md).
 
 # Compose
 Let's say we want to turn something ugly like:
