@@ -259,9 +259,9 @@ The `build:` section, no matter what `type:` you need, handles a few additional 
    ```
 
 ## Pre and Post Operations
-When executing, we may want to run some tasks before and after our build procedure. This can be done using [Command Lists](doc/build_commands.md).
+When executing, we may want to run some tasks before and after our build procedure. This can be done using [Command Lists](build_commands.md).
 
-> Tip: Go read up on [commands](doc/build_commands.md)! They're pretty cool! And they will come in handy. Not to mention this next part won't make any real sense until you do.
+> Tip: Go read up on [commands](build_commands.md)! They're pretty cool! And they will come in handy. Not to mention this next part won't make any real sense until you do.
 
 Once you have a basic grasp on how commands work, take a look at the following example.
 ```yaml
@@ -313,4 +313,4 @@ There's a lot going on there but it's quite useful for handling many of our usua
 
 # Build Types
 
-* [basic](doc/build_type_basic.md)
+* [basic](build_type_basic.md)

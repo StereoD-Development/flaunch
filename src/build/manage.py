@@ -122,6 +122,9 @@ class BuildManager(object):
         Run the full extent of the build. This includes any pre and post
         commands.
         """
+        if not os.path.exists(self.build_dir):
+            os.makedirs(self.build_dir)
+
         os.chdir(self.build_dir)
 
         self._prerequisite_check()

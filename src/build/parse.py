@@ -41,7 +41,7 @@ class BuildCommandParser(object):
     the various types of commands as well as basic variable expansion
     and the like.
     """
-    LOCAL_COMMAND = re.compile(r'^:(?P<alias>[^\s]+)\s(?P<args>(.*))$')
+    LOCAL_COMMAND = re.compile(r'^:(?P<alias>[^\s]+)(\s)?(?P<args>(.*))$')
 
     def __init__(self, commands=[], build_file=None, additional=None):
         if not isinstance(commands, (list, tuple)):

@@ -11,6 +11,7 @@ import sys
 import shutil
 import logging
 import argparse
+from collections import deque
 
 from build.command import _BuildCommand
 
@@ -268,3 +269,59 @@ class ReadCommand(_BuildCommand):
             ))
 
         build_file.add_attribute(self.data.property, d)
+
+
+class CDCommand(_BuildCommand):
+    """
+    Change the working directory of the script
+    """
+    alias = 'CD'
+
+    def description(self):
+        return 'Change the working directory of our commands. This '\
+               'remembers the location it came from to go back and forth.'
+
+
+    def populate_parser(self, parser):
+        """
+        Very simple command with a directory to move into
+        """
+        parser.add_argument(
+            '-p', '--pop',
+            action='store_true',
+            help='Similar to pushd and popd, this will return to '
+                 'the previous directory that was current'
+        )
+        parser.add_argument(
+            'directory',
+            nargs='?',
+            default='{build_dir}',
+            help='The directory to move into. '
+                 'If no directory is supplied, the '
+                 '{build_dir} is selected'
+        )
+
+
+    def run(self, build_file):
+        """
+        Move this process into another directory
+        """
+        change_to = self.data.directory
+
+        if self.data.pop:
+            if hasattr(build_file, '_previous_directories'):
+                if len(build_file._previous_directories):
+                    change_to = build_file._previous_directories.pop()
+
+        # -- We have to expand the directory in the event the
+        # default it provided
+        change_to = build_file.expand(change_to)
+
+        # Push the current directory to the stack
+        if not hasattr(build_file, '_previous_directories'):
+            build_file._previous_directories = deque()
+
+        if not self.data.pop:
+            build_file._previous_directories.append(os.getcwd())
+
+        os.chdir(change_to)
