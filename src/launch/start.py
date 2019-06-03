@@ -71,14 +71,16 @@ def _prep_env_for_launch(args, app, exec_, additional=None):
     return env
 
 
-def prep_env(args, env=None):
+def _prep_env(args, env=None):
     """
     A specialty command because this can take another command and process that too!
     :param args: Arguments that we're going to be working with.
     :param env: Pass a pre-existing environment
     :return: int
     """
-    root_packages = args.packages.split(PACKAGE_SPLIT)
+    root_packages = []
+    for pkglist in args.env:
+        root_packages.extend(pkglist.split(PACKAGE_SPLIT))
 
     #
     # Possible locations that development builds might be located
@@ -104,20 +106,9 @@ def prep_env(args, env=None):
         pkgrep.prep_env(launch_json, env)
         logging.debug('-- Done Prepping: {}'.format(launch_json.package))
 
-    #
-    # -- Once we have our environment ready to go, we have to start the next
-    # sequence of commands, routing them where they belong. We're careful to
-    # include all information we've gathered so far!
-    #
-    if args.additional:
-        passdown = args.additional
-        if args.verbose:
-            passdown.insert(0, '-v')
-        _args = args.this_parser.parse_args(passdown)
-        _args.env = env
-        _args.packages = root_packages
-        _args.func(_args)
-    return 0
+    args.env = env
+    args.packages = root_packages
+    return args.env
 
 
 def path_application(args):
@@ -147,6 +138,7 @@ def run_command(args):
     :return: int
     """
     logging.debug('Run Command...')
+    _prep_env(args)
     env = _prep_env_for_launch(args, args.arguments[0], 'run')
     utils.run_(args.arguments, env, args.verbose)
     return 0
@@ -163,26 +155,34 @@ def launch_application(args):
     :return: int
     """
     logging.debug('Launch Command...')
-
-    env = _prep_env_for_launch(args, args.application, 'launch', args.app_args)
+    _prep_env(args)
+    exec_name = 'launch' if not args.run else 'run'
+    env = _prep_env_for_launch(args, args.application, exec_name, args.app_args)
     packages = set(getattr(args, 'packages', []))
 
     #
     # Because this is a proper package, we also prep our launchable package!
     #
-    resolved_launch = pkgrep.resolve_packages([args.application], packages)
+    if not args.run:
+        resolved_launch = pkgrep.resolve_packages([args.application], packages)
 
-    for launch_json in resolved_launch:
-        logging.debug('Prepping: {}'.format(launch_json.package))
-        pkgrep.prep_env(launch_json, env)
-        logging.debug('-- Dont Prepping: {}'.format(launch_json.package))
+        for launch_json in resolved_launch:
+            logging.debug('Prepping: {}'.format(launch_json.package))
+            pkgrep.prep_env(launch_json, env)
+            logging.debug('-- Dont Prepping: {}'.format(launch_json.package))
 
-    #
-    # Fire the applicaiton up! Get the exectuable within our launch.json. When
-    # resolving a package, the last one should _always_ be the launchable
-    # application.
-    #
-    executable = pkgrep.resolve_exec(resolved_launch[-1], env)
+    if args.run:
+        #
+        # Just fire the command passed in using our environment
+        #
+        executable = args.application
+    else:
+        #
+        # Fire the applicaiton up! Get the exectuable within our launch.json. When
+        # resolving a package, the last one should _always_ be the launchable
+        # application.
+        #
+        executable = pkgrep.resolve_exec(resolved_launch[-1], env)
     utils.run_([executable] + args.app_args, env, args.verbose)
     return 0
 
@@ -199,46 +199,54 @@ def update_flaunch(args):
     pkgrep.update_flaunch(results)
     return 0
 
+
 def build_parser():
     """
     Build the application parser. Based on all of this, we'll decide on what the user
     wants to do.
     """
-    parser = argparse.ArgumentParser(description="Launch an application with possible flux packages")
-    parser.add_argument('-v', '--verbose', action='store_true', help="Give feedback while working")
-    parser.add_argument('-l', '--log', help="Push logging information to a file")
-    parser.add_argument('-f', '--force', help="Force redownload any packages that this command uses")
+    def _fill_parser_with_defaults(parser):
+        """
+        Fill all parsers with the same defaults
+        """
+        parser.add_argument('-v', '--verbose', action='store_true', help="Give feedback while working")
+        parser.add_argument('-l', '--log', help="Push logging information to a file")
+        parser.add_argument('-f', '--force', help="Force redownload any packages that this command uses")
+
+        # -- Environment tools
+        parser.add_argument('-e', '--env', action='append', help='The environment to use on this launch')
+        parser.add_argument('-d', '--dev-repo', action='append',
+                            help="Provide additional directories to scan for development builds")
+    
+    parser = argparse.ArgumentParser(prog='flaunch', description="Launch an application with possible flux packages")
     subparsers = parser.add_subparsers(help="Commands for flaunch")
 
+    # -- launch
     launch_parser = subparsers.add_parser('launch', help="Launch an applicaiton")
+    _fill_parser_with_defaults(launch_parser)
+    launch_parser.add_argument('-t', '--detach', action='store_true', help="When launching, detach from this process")
+    launch_parser.add_argument('-r', '--run', action='store_true',
+                               help="Marks the command as a direct executable rather than a package")
     launch_parser.add_argument('application', help="Application name to launch")
-    launch_parser.add_argument('-d', '--detach', action='store_true', help="When launching, detach from this process")
     launch_parser.add_argument('app_args', nargs=argparse.REMAINDER, help="Arguments that we pass to our application")
     launch_parser.set_defaults(func=launch_application)
 
+    # -- path
     path_parser = subparsers.add_parser('path', help="Get the install locations of downloaded applications")
+    _fill_parser_with_defaults(path_parser)
     path_parser.add_argument('applications', nargs=argparse.REMAINDER, help="Application name to find")
     path_parser.add_argument('-a', '--all', action='store_true', help='Show all versions currently downloaded')
     path_parser.set_defaults(func=path_application)
 
+    # -- clear
     clear_parser = subparsers.add_parser('clear', help="Clear packages that we may have downloaded")
+    _fill_parser_with_defaults(clear_parser)
     clear_parser.add_argument('applications', nargs=argparse.REMAINDER, help="Applications that we're clearing out")
     clear_parser.set_defaults(func=clear_applications)
 
-    run_parser = subparsers.add_parser('run', help="Execute the command following this word given our environment")
-    run_parser.add_argument('arguments', nargs=argparse.REMAINDER, help="Application arguments")
-    run_parser.set_defaults(func=run_command)
-
-    env_parser = subparsers.add_parser('env', help="Prep an environment")
-    env_parser.add_argument('-t', '--this', action='store_true', help="If True, prep this environment (Useful for testing)")
-    env_parser.add_argument('-r', '--dev-repo', action='append',
-                            help="Provide additional directories to scan for development builds")
-    env_parser.add_argument('packages', help="Package list (\":\" delimited) to prep our environment with")
-    env_parser.add_argument('additional', nargs=argparse.REMAINDER, help="Additional commands (e.g. launch, run, etc)")
-    # We allow for re-parsing
-    env_parser.set_defaults(this_parser=parser, func=prep_env)
-
+    # -- update
     update_parser = subparsers.add_parser('update', help="Update the flaunch tool")
+    _fill_parser_with_defaults(update_parser)
     update_parser.set_defaults(func=update_flaunch)
 
     return parser
@@ -257,6 +265,11 @@ def main():
     try:
         args = parser.parse_args()
     except:
+
+        # Ignore help requests
+        if '-h' in sys.argv or '--help' in sys.argv:
+            return 0
+
         parser.error = original_error
         new_args = []
         for arg in sys.argv[1:]:
@@ -264,8 +277,7 @@ def main():
                 new_args.append(arg)
             else:
                 break
-        args = parser.parse_args(new_args + ['launch'] + sys.argv[len(new_args) + 1:])
-
+        args = parser.parse_args(['launch'] + sys.argv[1:])
 
     log.start(args.verbose, args.log)
     logging.debug("Starting Command...")

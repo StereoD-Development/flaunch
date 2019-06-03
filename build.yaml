@@ -49,6 +49,8 @@ build:
   #
   launch_json:
     executable: "{path}/flaunch"
+    env:
+      PYTHONPATH: ["{path}"]
 
 # -- The Deployment Proceedure
 #

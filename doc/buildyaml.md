@@ -141,16 +141,16 @@ With this, we run `fbuild MyPackage` and we shouldn't see the `WARNING` anymore.
 What's the point of building it if we can't actually use it? Let's give the python interpreter a shot.
 
 ```
-flaunch env MyPackage/dev run python
+flaunch --env MyPackage/dev --run python
 ```
 
 Now you should have a python interpreter running from which you can use your package freely.
 
 ### Mixed Python Paths!
 
-> Note/Tip/Warning: It's a good idea to run the flaunch command from outside the source files to make sure you python interpreter isn't using your current working directory by default, which would use the source files by default. This really only applies to scripting languages.
+> Note/Tip/Warning: It's a good idea to run the flaunch command from outside the source files to make sure your python interpreter isn't using your current working directory, which would use the source files by default. This really only applies to scripting languages.
 
-Once you have the interpreter running you should be able to run something like:
+Once you have the interpreter running you should be able to do something like:
 
 ```python
 >>> from MyPackage import dollars_from_cents

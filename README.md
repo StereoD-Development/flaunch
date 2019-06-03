@@ -47,8 +47,7 @@ This is where `fbuild compose` comes into play. It's a simple way to build a com
 launcher program without lifting another finger.
 
 ```
-~$> fbuild compose SomeAppWithArgs
-    --version 1.0.0 \
+~$> fbuild compose SomeAppWithArgs 1.0.0 \
     --packages PackageA:PackageB/1.23.4:AnotherPackage \
     --launch SomeApp \
     --args --arg1 --arg2

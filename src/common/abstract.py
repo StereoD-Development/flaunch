@@ -152,14 +152,23 @@ class _AbstractFLaunchData(object):
             # Recursive expansion!
             #
             still_to_resolve = _AbstractFLaunchData.SEARCH_REGEX.findall(val)
+            unknown = set()
 
             for sub_val in still_to_resolve:
                 if sub_val in found:
+                    if sub_val[1:-1] not in env:
+                        logging.debug('Unknown property: {}'.format(sub_val))
+                        unknown.add(sub_val)
+                        continue
+
                     logging.critical('Potential cyclic variable expansion detected!')
                     with log.log_indent():
                         logging.critical('Attempted to expand: "{}"'.format(val))
                     sys.exit(1)
                 found.add(sub_val)
+
+            for uk_val in unknown:
+                still_to_resolve.remove(uk_val)
 
             if still_to_resolve:
                 return self.expand(val, env, found=found)
@@ -179,7 +188,7 @@ class _AbstractFLaunchData(object):
                 #
                 # We want to push multiple items in
                 #
-                if key in env:
+                if key.upper() in env:
                     env[key.upper()] += os.pathsep + os.pathsep.join(value)
                 else:
                     env[key.upper()] = os.pathsep.join(value)
