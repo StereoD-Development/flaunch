@@ -31,7 +31,7 @@ more is this process can recurse further and further untill all packages are loa
 This is better left to some of the more formal [Documentation](doc/buildyaml.md).
 
 # Compose
-Let's say we want to turn something ugly like:
+Let's say we want to turn something fugly like:
 
 ```
 ~$> flaunch env PackageA:PackageB/1.23.4:AnotherPackage launch SomeApp --arg1 --arg2
@@ -47,7 +47,8 @@ This is where `fbuild compose` comes into play. It's a simple way to build a com
 launcher program without lifting another finger.
 
 ```
-~$> fbuild compose SomeAppWithArgs/1.0.0 \
+~$> fbuild compose SomeAppWithArgs
+    --version 1.0.0 \
     --packages PackageA:PackageB/1.23.4:AnotherPackage \
     --launch SomeApp \
     --args --arg1 --arg2

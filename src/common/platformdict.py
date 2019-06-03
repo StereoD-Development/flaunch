@@ -60,7 +60,7 @@ class PlatformDict(object):
     :Note: The platform names are semi-case sensitive. For keywords stick
     to first capital or all lower (e.g. 'Unix' or 'unix' (NOT 'UNIX'))
     """
-    def __init__(self, og_dict):
+    def __init__(self, og_dict = {}):
         if not isinstance(og_dict, dict):
             raise LaunchJsonError('Build/Launch data must be a dictionary!')
         self.__d = og_dict
@@ -126,7 +126,7 @@ class PlatformDict(object):
         """
         Generator to iterate through
         """
-        from commmon import utils
+        from common import utils
         for k,v in utils._iter(self.__d):
             if isinstance(v, dict):
                 v = self.__get_dict_entry(v)

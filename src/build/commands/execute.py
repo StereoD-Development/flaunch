@@ -75,3 +75,38 @@ class PythonCommand(_BuildCommand):
                 'build_file': build_file
             }
         )
+
+
+class FuncCommand(_BuildCommand):
+    """
+    Function command utility
+    """
+    alias = 'FUNC'
+
+    def description(self):
+        return 'Execute a COMMAND_LIST that we\'ve defined elsewhere.'
+
+
+    def populate_parser(self, parser):
+        """
+        Not many options for this
+        """
+        parser.add_argument(
+            'func',
+            help='The function to execute'
+        )
+
+
+    def run(self, build_file):
+        """
+        Execute the commands with a parser
+        """
+        from build.parse import BuildCommandParser
+
+        commands = build_file.get_function_commands(self.data.func)
+
+        parser = BuildCommandParser(
+            commands, build_file, build_file.additional
+        )
+        parser.exec_()
+

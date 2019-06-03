@@ -129,8 +129,28 @@ By simply adding a space:
 You will get the desired results. Odds are this will be a very rare occurrence but worth noting none the less.
 
 
+### :FUNC Command
+A useful command for refining your build procedure and componentalizing (not a word) your toolkit.
+
+You define a function on your `build.yaml` root with the `func__` prefix. Something like:
+```yaml
+func__my_function():
+    # COMMAND_LIST
+```
+
+Then it's up to you what you want to do within that Command List. You can use all the same argument checking, clauses, etc. When you want to use it, simply call the `:FUNC` command
+
+```
+# ... Somewhere in a COMMAND_LIST
+    - ":FUNC my_function()"
+```
+
+> Note: As of June 2019, we don't make use of the `()` in our functions but they are required for future expansion and utility (think loop countdown, tings of that nature).
+
+> Warning: Because we don't have a way to break out of a function and arguments are always global, for the time being be careful not to introduce a loop, which will go on forever.
+
 # Chaining Commands
-With all of these concepts, and the power of the `build.yaml` including Variable Expansion, and Platform Routing, we can generate very potent commands to fit our needs.
+With all of these concepts, and the power of the `build.yaml` including Variable Expansion and Platform Routing we can generate very potent commands to fit our needs.
 
 
 ```yaml

@@ -2,8 +2,12 @@
 
 name: flaunch
 
-repository:
-  http://git/flux/flaunch
+include:
+  - sdpm_package
+
+repositories:
+  - https://github.com/StereoD-Development/flaunch
+  - http://git/flux/flaunch
 
 #
 # flaunch Packages we require to run our build
@@ -12,40 +16,7 @@ repository:
 requires: null
 
 # -- Global Properties
-props:
-  bar: "{username}"
-  foo: "{bar}"
-  # my_custom_script: |
-  #   import platform
-
-  #   class Foo(object):
-  #       """ dict that auto-routes based on platform """
-  #       def __init__(self, og_dict):
-  #           self.__d = og_dict
-
-  #       def __getitem__(self, key):
-  #           val = self.__d[key]
-  #           if isinstance(val, dict):
-  #               return Foo(val.get(platform.system(), val))
-  #           return val
-
-  #       def __str__(self):
-  #           return str(self.__d)
-
-  #   foo = Foo({
-  #       'val1' : 'blarg',
-  #       'val2' : { 'foo': 'cool' },
-  #       'val3' : { 'Windows' : 'a value under dow', 'Linux' : 'cant touch me' },
-  #       'val4' : { 'foo': { 'Windows' : 'testtt', 'Linux' : 'nooo' } }
-  #   })
-
-  #   print ()
-
-  #   print (foo['val2'])
-  #   print ("-------")
-  #   print (foo['val3'])
-  #   print ("-------")
-  #   print (foo['val4']['foo'])
+props: null
 
 # -- Package Management
 #
@@ -54,48 +25,6 @@ props:
 #
 build:
   type: basic
-
-  #
-  # Commands we have to have access to from our current
-  # environment. This is useful for when we run custom build
-  # utilities
-  #
-  # local_required:
-  #   windows:
-  #     - 7z
-  #     - msbuild
-  #   unix:
-  #     - zip
-  #     - make
-
-  #
-  # Whatever the repo ignores, so should we
-  # (this is the default)
-  #
-  use_gitignore: true
-
-  # pre_build_conditions: --sdpm
-  pre_build:
-    - ":PRINT {foo}"
-    # - ":PRINT {source_dir}"
-    # - ":PRINT {source_directory}"
-    # - ":PYTHON -f C:/repo/test_me_two.py"
-    # - ":PYTHON my_custom_script"
-    # - ["--foo",
-    #   [ ":PRINT {username} additional commands",
-    #     ":PRINT {username} additional asdfasdf"
-    #   ]]
-    # - windows:
-    #     clause:
-    #       "\"{username}\" == \"Michael McCartney\""
-    #     commands:
-    #       - ":PRINT -s -q {homedrive}{homepath} bar cool"
-    # - windows:
-    #   - ":PRINT OKAY WINDOWS!"
-
-
-  # post_build:
-  #   - :PRINT post build time
 
   #
   # What to include in our build
@@ -109,6 +38,7 @@ build:
       - endpoints.txt
     windows:
       - src
+      - win32utils
       - flaunch.bat
       - fbuild.bat
       - version.txt
@@ -119,3 +49,11 @@ build:
   #
   launch_json:
     executable: "{path}/flaunch"
+
+# -- The Deployment Proceedure
+#
+# This changes significantly between setups.
+#
+# deploy:
+#   endpoints:
+#     - 

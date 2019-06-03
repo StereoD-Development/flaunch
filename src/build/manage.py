@@ -32,13 +32,19 @@ class BuildFile(_AbstractFLaunchData):
         try:
             with open(path) as f:
                 d = yaml.safe_load(f)
+
+                if not d.get('props'):
+                    d['props'] = {} # Make sure for plugin setup
+
                 data = PlatformDict(d)
         except Exception as e:
             logging.error(path + ' - invalid yaml file')
             raise FLaunchDataError(str(e))
 
         _AbstractFLaunchData.__init__(self, package, path, data)
-        self._build_manager = None
+        self._load()
+
+        self._build_manager = manager
 
     def set_manager(self, manager):
         """
@@ -46,6 +52,13 @@ class BuildFile(_AbstractFLaunchData):
         :param manager: The BuildManager that owns this item
         """
         self._build_manager = manager
+
+    @property
+    def additional(self):
+        if self._build_manager:
+            return self._build_manager.additional
+        return []
+
 
     @property
     def build_dir(self):
@@ -82,6 +95,61 @@ class BuildFile(_AbstractFLaunchData):
         For variable expansion, we handle it at the build file level
         """
         return deepcopy(self['props']) or PlatformDict()
+
+
+    def command_environment(self, env):
+        """
+        The environment that we run when working with a command
+        based tool
+        :return: dict{str:str}
+        """
+        if self['env']:
+            for k,v in utils._iter(self['env']):
+                # Passing key will update the environment
+                self.expand(v, env, key=k)
+
+
+    def get_function_commands(self, name):
+        """
+        Get a function based on it's name
+        """
+        if '(' in name:
+            name = name[:name.index('(')]
+
+        for key, value in utils._iter(self._data):
+            if key.startswith('func__'):
+                func_name = key[:key.index('(')].replace('func__', '')
+                if func_name == name:
+                    return self[key]
+        return []
+
+    def _load(self):
+        """
+        The BuildFile manages some additional features. See docs/plugins.md for
+        for information
+        """
+
+        #
+        # Start with any plugins. Our local build file will overload anything in
+        # said plugin but it's good to have
+        #
+        if self['include']:
+            if not isinstance(self['include'], (list, tuple)):
+                raise TypeError('build.yaml -> include: must be a list of plugins')
+
+            for plugin in self['include']:
+                plugin_filepath = utils.path_ancestor(os.path.abspath(__file__), 3)
+                plugin_filepath = os.path.join(plugin_filepath, 'plugins', plugin + '.yaml')
+
+                if not os.path.isfile(plugin_filepath):
+                    logging.error("Invalid plugin: {}".format(plugin_filepath))
+                    return
+
+                with open(plugin_filepath) as f:
+                    plugin_data = yaml.safe_load(f)
+                    self._data = PlatformDict(
+                        dict(utils.merge_dicts(plugin_data, self._data.to_dict()))
+                    )
 
 
 class BuildManager(object):

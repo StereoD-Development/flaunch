@@ -63,11 +63,19 @@ def path_ancestor(path, count):
     return path_ancestor(os.path.dirname(path), count - 1)
 
 
-def run_(command_and_args, custom_env = {}, verbose = False):
+def run_(command_and_args, custom_env = {}, verbose = False, build_file = None):
     """
     Execute the command provided
+    :param command_and_args: list|str of the command and arguments we want to run
+    :param custom_env: Environment values we want to utilize over our current environ
+    :param verbose: Not used currently
+    :param build_file: For building, this is a BuildFile instance that has additional
+                       environment augmentation
+    :return: int exit code
     """
     env = dict(os.environ, **custom_env)
+    if build_file is not None:
+        build_file.command_environment(env)
     os.environ.update(env)
 
     if not isinstance(command_and_args, (list, tuple)):
@@ -134,3 +142,52 @@ def add_metaclass(metaclass):
         orig_vars.pop('__weakref__', None)
         return metaclass(cls.__name__, cls.__bases__, orig_vars)
     return wrapper
+
+
+def merge_dicts(dict1, dict2, combine_keys=None, ignore=None):
+    '''
+    Merge dictionaries recursively and pass back the result.
+    If a conflict of types arrive, just get out with what
+    we can.
+    '''
+    if combine_keys is None:
+        combine_keys = {}
+    if ignore is None:
+        ignore = []
+    def _merge_list_of_dicts(list1, list2, key):
+
+        list1_values = [l[key] for l in list1]
+        list2_values = [l[key] for l in list2]
+
+        for v in set(list1_values).union(list2_values):
+            if v in list2_values:
+                # If the value is in the second list, we use that instead
+                yield list2[list2_values.index(v)]
+            else:
+                yield list1[list1_values.index(v)]
+
+
+    for k in set(dict1.keys()).union(dict2.keys()):
+        if k in dict1 and k in dict2:
+            if isinstance(dict1[k], dict) and isinstance(dict2[k], dict):
+                if k in ignore:
+                    yield (k, dict2[k])
+                else:
+                    yield (k, dict(merge_dicts(dict1[k], dict2[k], combine_keys, ignore)))
+            else:
+                # If one of the values is not a dict, you can't continue merging it.
+                # Value from second dict overrides one in first and we move on.
+
+                # That is, unless, we've supplied combine keys. This is for list
+                # concatinaion based on a given key.
+                if k in combine_keys:
+                    if isinstance(dict1[k], list) and isinstance(dict2[k], list):
+                        yield (k, list(_merge_list_of_dicts(dict1[k], dict2[k], combine_keys[k])))
+                    else:
+                        yield (k, dict2[k])
+                else:
+                    yield (k, dict2[k])
+        elif k in dict1:
+            yield (k, dict1[k])
+        else:
+            yield (k, dict2[k])

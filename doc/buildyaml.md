@@ -21,6 +21,7 @@ Rather than creating complicated python build scripts for everything or handling
     * [props:](#props)
 * [General Options](#general-options)
     * [Pre and Post Operations](#pre-and-post-operations)
+* [Templates and Functions](#templates-and-functions)
 * [Build Types](#build-types)
 
 # Starting Out
@@ -310,6 +311,80 @@ There's a lot going on there but it's quite useful for handling many of our usua
     * In the example, we didn't provide this so it will always resolve to `True`
 * `post_build`: A Command List that we'll execute if `post_build_condition` is null, not provided, or resolves to true.
     * In the example, we have a dictionary command that checks is an environment variable is set by using the built in function `env_set`
+
+# Templates and Functions
+We often have similar build/deployment requirements between packages. This can be tedious if you're writing the same commands over and over and again for each subsequent package.
+
+`fbuild` deals with this through two interfaces.
+
+1. The [`:FUNC` Command](build_commands.md#func-command)
+2. Templates
+
+## A Template
+The basic concept is a template is an "overload-able" `build.yaml` file that you can overload by including it inside of your specific `build.yaml`. Deriving from a template is declared with the `include:` keyword.
+
+So, given the template `my_build_template.yaml`
+```yaml
+props:
+  # We often mark "private" properties with a '_'
+  _server_location:
+    windows: //isilon2
+    unix: /mnt/isilon2
+
+  _platform_arch:
+    windows: AMD64-Windows
+    linux: x86_64-Linux
+
+  _extra_build_dir: {_server_location}/deployments/{_platform_arch}
+
+func__build_template_post():
+  - ":DEL {_extra_build_dir}/*"
+  - ":COPY -f {build_dir}/* {_extra_build_dir}"
+
+build:
+  
+  # This is all that we overload
+  post_build:
+    - ["--extra-build", "build_template_post()"]
+
+```
+
+Then, our actual `build.yaml` file could look something like:
+```yaml
+name: MyDerivedBuild
+
+include:
+  - a_template_name
+
+props:
+  local_setting: true
+
+build:
+  type: basic
+
+  files:
+    - docs
+    - src
+
+  launch_json:
+    env:
+      PATH: ["{path}"]
+```
+
+Now, when we build:
+```
+fbuild -v MyDerivedBuild
+```
+
+Nothing would happen! That's because the plugin `post_build` command looks for the argument `--extra-build`.
+```
+fbuild -v MyDerivedBuild --extra-build
+```
+
+The `include` option is a list so multiple deriving from multiple templates is possible, and because this is `build.yaml`, you can even template based on platform. Sky is the limit.
+
+> Tip: The order of include is important. The overloading of values will continue from the first to the last. So if package `a` includes template `b` and `c` in that order, `a` is have precedence, followed by `c` and then `b` 
+
 
 # Build Types
 

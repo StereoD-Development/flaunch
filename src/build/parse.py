@@ -146,7 +146,7 @@ class BuildCommandParser(object):
             d = match.groupdict()
 
             arguments = shlex.split(d['args'])
-            cmd = _BuildCommand.get_command(d['alias'])
+            cmd = _BuildCommand.get_command(d['alias'].upper())
         else:
             arguments = shlex.split(command_string)
             cmd = _BuildCommand
