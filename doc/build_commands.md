@@ -4,7 +4,7 @@ Command Lists
 Another vital and powerful feature of `fbuild` is it's rich command tools. By abstracting some components into easy-to-use commands, while leaving the ability to run raw command line expressions, you can get the most out of the build technology without having to have a different build procedure for each platform.
 
 # The Syntax
-A Command List is, unsurprisingly, a list of commands that we want to execute. A "Command" in this context isn't just a command line operation but potentially a tree of possible code paths to follow should the need arise.
+A Command List is, unsurprisingly, a list of commands that we want to execute. A "Command" in this context *isn't* just a command line operation but potentially a tree of possible code paths to follow should the need arise.
 
 ## Basic Command
 ```
@@ -61,6 +61,17 @@ Currently, the provided functions are:
 
 * `env_check(var, val)` : Check if an environment variable is set to a specific value
 * `env_set(var)`: Check if an environment variable is set to anything
+
+## Platform Routing
+Because this is `build.yaml` - _any_ _time_ you want to route based on platform, you are allowed to do so. Command Lists are no exception.
+
+```yaml
+- "echo foo"
+- windows:
+    "echo I AM WINDOWS!"
+  unix:
+    "echo I AM _NOT_ WINDOWS!"
+```
 
 # FBuild Commands
 ```

@@ -19,6 +19,7 @@ Rather than creating complicated python build scripts for everything or handling
     * [Platform Based](#platform-based)
         * [Unix](*unix)
     * [props:](#props)
+* [Command Lists](#command-lists)
 * [General Options](#general-options)
     * [Pre and Post Operations](#pre-and-post-operations)
 * [Templates and Functions](#templates-and-functions)
@@ -243,6 +244,11 @@ In this example, as `fbuild` does the build, `{tar_command}` will expand to the 
 ## A Note On Paths
 Paths are complicated and often a pain point for development routines. When writing `build.yaml` files, _always_ use forward slashes (`/`) to allow for simpler parsing and common, readable code.
 
+# Command Lists
+When we are building, deploying, managing, etc., we're usually just running command after command and changing a few things based on the platform we're running with, and the particulars of a software package. That's why we've come up with the [Command List](build_commands.md).
+
+These are so important it gets it's own doc. Read up on them to get the full effect of what `fbuild` can do for your devops optimization.
+
 # General Options
 The `build:` section, no matter what `type:` you need, handles a few additional keywords for managing your build.
 
@@ -339,6 +345,7 @@ props:
 
 func__build_template_post():
   - ":DEL {_extra_build_dir}/*"
+  - ":MKDIR {_extra_build_dir}"
   - ":COPY -f {build_dir}/* {_extra_build_dir}"
 
 build:
