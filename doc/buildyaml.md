@@ -228,14 +228,14 @@ name: MyPackage
 
 props:
   tar_command:
-    windows: 7z cfz
-    unix: tar -czf
+    windows: 7z
+    unix: tar
 
 build:
   type: basic
 
   commands:
-    - {tar_command} my_file.tar.gz some_folder/
+    - {tar_command} -cvf my_file.tar.gz some_folder/
 ```
 
 In this example, as `fbuild` does the build, `{tar_command}` will expand to the `prop: tar_command` of which that value will be based on the platform we're building with. Awesome!
@@ -354,7 +354,7 @@ Then, our actual `build.yaml` file could look something like:
 name: MyDerivedBuild
 
 include:
-  - a_template_name
+  - my_build_template
 
 props:
   local_setting: true

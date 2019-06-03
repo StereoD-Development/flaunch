@@ -54,7 +54,7 @@ func__sdpm_clean_dev_build():
 func__sdpm_deploy_simple(version, fix_number):
   - ":SET {_sdpm_deploy_location}/{version}/{fix_number}/{_platform_arch} deployment_loc"
   - ":MKDIR -s {deployment_loc}"
-  - ":CD {build_dir}" # Should already be there but why not
+  - ":CD {build_dir}" # Should already be there but just in case
   - windows: 7z a -r ../{sdpm_archive} -w ./* # TODO: Get a python command for this
     unix: tar -cvzf ../{sdpm_archive} ./*
   - ":COPY -f {build_dir}/* "
