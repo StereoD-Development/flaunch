@@ -6,6 +6,7 @@ from __future__ import absolute_import
 
 import os
 import sys
+import json
 import shutil
 import logging
 import zipfile
@@ -113,7 +114,6 @@ def _get_package(package, version=None, info=None, builds=[], force=False):
         # Development pacakges are a special case. First, we check
         # if a local build can be found
         #
-
         for build_location in builds:
             p = os.path.join(build_location, package, 'launch.json')
             if os.path.exists(p):
@@ -137,15 +137,27 @@ def _get_package(package, version=None, info=None, builds=[], force=False):
 
     if not is_dev:
         if not os.path.isfile(launch_json):
-            filename = info['uri'].split('/')[-1]
 
-            # -- Get the package
-            _download(info, path, filename)
+            # -- Do one additional check to see if this is a composed package
+            # that we simply place into our local_path by building the launch
+            # json to match
+            if info.get('launch_data'):
+                if not os.path.isdir(os.path.dirname(launch_json)):
+                    os.makedirs(os.path.dirname(launch_json))
 
-            # -- Unzip it, cleaning up as we go
-            arch = os.path.join(path, filename)
-            _extract(arch)
-            os.unlink(arch)
+                with open(launch_json, 'w') as f:
+                    json.dump(info['launch_data'], f)
+
+            else:
+                filename = info['uri'].split('/')[-1]
+
+                # -- Get the package
+                _download(info, path, filename)
+
+                # -- Unzip it, cleaning up as we go
+                arch = os.path.join(path, filename)
+                _extract(arch)
+                os.unlink(arch)
 
             # -- Basic validation
             if not os.path.isfile(launch_json):
@@ -156,11 +168,14 @@ def _get_package(package, version=None, info=None, builds=[], force=False):
 
     return utils.LaunchJson(package, launch_json)
 
-def resolve_packages(package_list, retrieved, builds=[]):
+def resolve_packages(package_list, retrieved, builds=[], all_ljsons=None):
     """
     Given a set of packages, unwrap the requirements
     """
     package_order = []
+
+    if all_ljsons is None:
+        all_ljsons = []
 
     def _package_names(l):
         if '/' in l:
@@ -176,12 +191,15 @@ def resolve_packages(package_list, retrieved, builds=[]):
     # To make sure we can't go cyclic or overload explicit
     list(map(retrieved.add, map(_package_names, package_list)))
 
+    main_package = None
     for package in package_list:
 
         logging.debug('Resolve: {}'.format(package))
         package, version = _get_package_and_version(package)
 
         current_launch = _get_package(package, version, builds=builds)
+        if main_package is None:
+            main_package = current_launch
 
         requirements = current_launch.requires();
         if requirements:
@@ -192,19 +210,57 @@ def resolve_packages(package_list, retrieved, builds=[]):
         to_retrieve = list(filter(_filter_had, requirements))
 
         extends = current_launch.extends()
+
+        additional_resolved = []
         if extends:
             logging.debug('Package: {} - extends: {}'.format(
                 package, extends
             ))
-            to_retrieve.append(extends)
 
-        order = resolve_packages(to_retrieve, retrieved)
+            #
+            # Extending another package means merging the launch.json of a concrete
+            # package. Because of this, we have to resolve the package right away
+            # 
+            # 
+            if extends in retrieved:
+                #
+                # We've already located this package. This should really only happen
+                # in development environments.
+                #
+                logging.debug('Base already resolved: {}'.format(extends))
+                lj_to_remove = None
+                for ljson in all_ljsons:
+                    if ljson.package == _package_names(extends):
+                        current_launch.set_base(ljson)
+                        lj_to_remove = ljson
+                        break
+
+                if lj_to_remove:
+                    all_ljsons.remove(lj_to_remove)
+
+            else:
+                # This will resolve the packages we need
+                base_and_required = resolve_packages(
+                    [extends], retrieved, builds=builds, all_ljsons=all_ljsons
+                )
+                base = base_and_required[-1]
+                current_launch.set_base(base)
+
+                pkg_names = map(_package_names, (lj.package for lj in base_and_required))
+                list(map(retrieved.add, pkg_names))
+
+                additional_resolved = base_and_required[:-1]
+
+        order = resolve_packages(to_retrieve, retrieved, builds=builds, all_ljsons=all_ljsons)
+        order.extend(additional_resolved)
 
         # -- Important! Make sure we sort the packages by "I need to load
         # first" in order to resolve env and variable expansion properly
         package_order.extend(order)
         package_order.append(current_launch)
 
+
+    all_ljsons.extend(package_order)
     return package_order
 
 
@@ -221,6 +277,7 @@ def resolve_exec(ljson, env):
             'Package: {} does not contain an executable entry! Cannot start!'\
                 .format(ljson.package)
         )
+        sys.exit(1)
 
     return ljson.expand(exec_, env)
 
@@ -235,6 +292,7 @@ def prep_env(ljson, env):
     :return: None
     """
     package_env = ljson['env']
+
     if not package_env:
         return
 

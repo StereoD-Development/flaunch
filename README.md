@@ -34,7 +34,7 @@ This is better left to some of the more formal [Documentation](doc/buildyaml.md)
 Let's say we want to turn something fugly like:
 
 ```
-~$> flaunch env PackageA:PackageB/1.23.4:AnotherPackage launch SomeApp --arg1 --arg2
+~$> flaunch -p PackageA:PackageB/1.23.4:AnotherPackage SomeApp --arg1 --arg2
 ```
 
 Into something beautiful like:
@@ -48,7 +48,8 @@ launcher program without lifting another finger.
 
 ```
 ~$> fbuild compose SomeAppWithArgs 1.0.0 \
-    --packages PackageA:PackageB/1.23.4:AnotherPackage \
+    --package PackageA --package PackageB/1.23.4 --package AnotherPackage \
+    --env 
     --launch SomeApp \
     --args --arg1 --arg2
 ```

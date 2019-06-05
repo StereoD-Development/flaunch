@@ -71,7 +71,7 @@ def _prep_env_for_launch(args, app, exec_, additional=None):
     return env
 
 
-def _prep_env(args, env=None):
+def _prep_launch_jsons(args, env=None):
     """
     A specialty command because this can take another command and process that too!
     :param args: Arguments that we're going to be working with.
@@ -79,13 +79,14 @@ def _prep_env(args, env=None):
     :return: int
     """
     root_packages = []
-    for pkglist in args.env:
-        root_packages.extend(pkglist.split(PACKAGE_SPLIT))
+    if args.package:
+        for pkglist in args.package:
+            root_packages.extend(pkglist.split(PACKAGE_SPLIT))
 
     #
     # Possible locations that development builds might be located
     #
-    build_locations = os.environ.get(FLAUNCH_BUILD_DIR, [])
+    build_locations = os.environ.get(FLAUNCH_BUILD_DIR, "")
     if build_locations:
         build_locations = build_locations.split(os.pathsep)
     build_locations += (args.dev_repo or [])
@@ -96,19 +97,9 @@ def _prep_env(args, env=None):
     #
     resolved_packages = pkgrep.resolve_packages(root_packages, set(), build_locations)
 
-    env = env or os.environ.copy()
-    for launch_json in resolved_packages:
-        #
-        # With each of the launch json files, we handle building the environment
-        # and other settings in order
-        #
-        logging.debug('Prepping: {}'.format(launch_json.package))
-        pkgrep.prep_env(launch_json, env)
-        logging.debug('-- Done Prepping: {}'.format(launch_json.package))
-
-    args.env = env
+    args.env = env or os.environ.copy()
     args.packages = root_packages
-    return args.env
+    return resolved_packages
 
 
 def path_application(args):
@@ -131,19 +122,6 @@ def clear_applications(args):
     return 0
 
 
-def run_command(args):
-    """
-    Run an application
-    :param args: Arguments that we're going to be working with.
-    :return: int
-    """
-    logging.debug('Run Command...')
-    _prep_env(args)
-    env = _prep_env_for_launch(args, args.arguments[0], 'run')
-    utils.run_(args.arguments, env, args.verbose)
-    return 0
-
-
 def launch_application(args):
     """
     Launch an application that contains a launch.json
@@ -155,21 +133,30 @@ def launch_application(args):
     :return: int
     """
     logging.debug('Launch Command...')
-    _prep_env(args)
+    launch_jsons = _prep_launch_jsons(args)
     exec_name = 'launch' if not args.run else 'run'
     env = _prep_env_for_launch(args, args.application, exec_name, args.app_args)
     packages = set(getattr(args, 'packages', []))
+
+    build_locations = os.environ.get(FLAUNCH_BUILD_DIR, "")
+    if build_locations:
+        build_locations = build_locations.split(os.pathsep)
+    build_locations += (args.dev_repo or [])
 
     #
     # Because this is a proper package, we also prep our launchable package!
     #
     if not args.run:
-        resolved_launch = pkgrep.resolve_packages([args.application], packages)
+        resolved_launch = pkgrep.resolve_packages(
+            [args.application], packages, builds=build_locations, all_ljsons=launch_jsons
+        )
 
-        for launch_json in resolved_launch:
+        for launch_json in resolved_launch + list(launch_jsons):
             logging.debug('Prepping: {}'.format(launch_json.package))
             pkgrep.prep_env(launch_json, env)
-            logging.debug('-- Dont Prepping: {}'.format(launch_json.package))
+            logging.debug('-- Done Prepping: {}'.format(launch_json.package))
+
+    arguments = args.app_args
 
     if args.run:
         #
@@ -182,8 +169,12 @@ def launch_application(args):
         # resolving a package, the last one should _always_ be the launchable
         # application.
         #
-        executable = pkgrep.resolve_exec(resolved_launch[-1], env)
-    utils.run_([executable] + args.app_args, env, args.verbose)
+        this_app = resolved_launch[-1]
+        executable = pkgrep.resolve_exec(this_app, env)
+        if not arguments and this_app.default_args():
+            arguments = this_app.default_args()
+
+    utils.run_([executable] + arguments, env, args.verbose)
     return 0
 
 
@@ -214,7 +205,7 @@ def build_parser():
         parser.add_argument('-f', '--force', help="Force redownload any packages that this command uses")
 
         # -- Environment tools
-        parser.add_argument('-e', '--env', action='append', help='The environment to use on this launch')
+        parser.add_argument('-p', '--package', action='append', help='The package(s) to use with this command')
         parser.add_argument('-d', '--dev-repo', action='append',
                             help="Provide additional directories to scan for development builds")
     
@@ -270,13 +261,10 @@ def main():
         if '-h' in sys.argv or '--help' in sys.argv:
             return 0
 
+        if sys.argv[1] in ('launch', 'path', 'clear', 'update'):
+            return 1
+
         parser.error = original_error
-        new_args = []
-        for arg in sys.argv[1:]:
-            if arg.startswith('-'):
-                new_args.append(arg)
-            else:
-                break
         args = parser.parse_args(['launch'] + sys.argv[1:])
 
     log.start(args.verbose, args.log)

@@ -4,9 +4,12 @@ Atom interface layer for working with packages.
 from __future__ import absolute_import
 
 import os
+import time
 import json
 import platform
+import getpass
 import logging
+import base64
 import sys
 
 try:
@@ -52,7 +55,7 @@ class ConnectionManager(object):
 
     def _settings_file(self):
         storage_path = utils.local_path(None, None, base_only=True)
-        return os.path.abspath(os.path.join(os.path.dirname(storage_path), 'flaunch_prefs.json'))
+        return os.path.abspath(os.path.join(os.path.dirname(storage_path), 'flaunch_prefs2.json'))
 
     def _build_settings(self):
         """
@@ -141,6 +144,74 @@ class ConnectionManager(object):
         logging.critical('Cannot connect to a repository!')
         sys.exit(1)
 
+
+    def get_credentials(self, first_time):
+        """
+        Get the user credientials for the active user
+        :return: tuple(username, password, bool - if the user entered in creds)
+        """
+        username = None
+        pw = None
+
+        if first_time:
+
+            if 'username' in self._settings:
+                username = self._settings['username']
+
+            # Some level of obfuscation
+            if 'session' in self._settings:
+                pw = base64.urlsafe_b64decode(self._settings['session'].encode('utf-8')).decode('utf-8')
+
+            if 'timestamp' in self._settings:
+                current_time = time.time()
+                delta = current_time - self._settings['timestamp']
+                delta_days = delta // 86400
+                if delta_days > 7:
+                    # Once a week we have the user login
+                    pw = None
+
+        if username and pw:
+            return username, pw, False
+
+        else:
+            if utils.PY3:
+                inp = input
+            else:
+                inp = raw_input
+
+            if username:
+                entered_usename = inp('Username (leave blank to use {}):'.format(username))
+            else:
+                entered_usename = inp('Username:')
+
+            if entered_usename != '':
+                username = entered_usename
+
+            pw = getpass.getpass()
+
+        return username, pw, True
+
+
+    def store_credentials(self, username, password):
+        """
+        Store the credentials in a basic spot for now - probably need some kind of
+        cookie control
+        """
+        self._save_setting('username', username)
+        self._save_setting('session', base64.urlsafe_b64encode(
+            password.encode('utf-8')).decode('utf-8')
+        )
+        self._save_setting('timestamp', time.time())
+
+
+def _default_headers():
+    return {
+        'Accept' : 'application/json',
+        'X-Flux-Facility' : FLUX_FACILITY,
+        'user-agent' : '{} flaunch/1.0.0'.format(platform.system())    
+    }
+
+
 def _get(endpoint, **params):
     """
     Run a basic request
@@ -150,11 +221,8 @@ def _get(endpoint, **params):
     return requests.get(
         manager.url + '/rest/latest' + endpoint,
         params=params,
-        headers = {
-            'Accept' : 'application/json',
-            'X-Flux-Facility' : FLUX_FACILITY,
-            'user-agent' : '{} flaunch/1.0.0'.format(platform.system())
-        })
+        headers = _default_headers()
+    )
 
 
 def download_file(url, dest):
@@ -228,3 +296,84 @@ def get_package_info(package, version=None):
             logging.error(data['error'])
         return None
     return data
+
+
+def register_package(package, version, method='get', launch_data=None, force=False, pre_release=False):
+    """
+    Registering a package requires a propper login with Atom
+    """
+    manager = ConnectionManager()
+
+    if not hasattr(manager, 'client'):
+
+        manager.client = requests.session()
+        login_url = manager.url + '/accounts/login/'
+
+        first_time = True
+        try:
+            while True:
+                username, password, manual = manager.get_credentials(first_time)
+                res_one = manager.client.get(login_url) # Set Cookie
+                csrftoken = manager.client.cookies['csrftoken']
+                first_time = False
+
+                login_data = dict(
+                    username=username,
+                    password=password,
+                    csrfmiddlewaretoken=csrftoken,
+                    next='/rest/latest/core/heartbeat'
+                )
+                manager._login_response = manager.client.post(login_url,
+                                                              data=login_data,
+                                                              cookies=res_one.cookies)
+
+                if manager._login_response.status_code not in [200, 302]:
+                    logging.info('Invalid credientials! Try again')
+                    continue
+                elif manual:
+                    manager.store_credentials(username, password)
+                break
+
+        except KeyboardInterrupt as e:
+            logging.info("Breaking out of package registration.")
+            return None
+
+    kwargs = {}
+    if method == 'get':
+        kwargs['params'] = {
+            'package' : package,
+            'version' : version,
+            'force'   : force,
+            'prerelease' : pre_release
+        }
+
+    elif method == 'post':
+        kwargs['json'] = {
+            'package' : package,
+            'version' : version,
+            'force'   : force,
+            'prerelease' : pre_release
+        }
+
+        if launch_data is not None:
+            kwargs['json']['launch_data'] = launch_data
+
+    result = getattr(manager.client, method)(
+        manager.url + '/rest/latest/core/package/register',
+        headers=_default_headers(),
+        cookies=manager._login_response.cookies,
+        **kwargs
+    )
+
+    if result.status_code != 200:
+        logging.error('Could not register package: {}'.format(package))
+        logging.error('Result invalid from Atom')
+        return None
+
+    else:
+        data = result.json()
+        if 'error' in data:
+            logging.error(data['error'])
+            return None
+
+        return data

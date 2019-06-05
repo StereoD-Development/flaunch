@@ -54,7 +54,25 @@ class LaunchJson(_AbstractFLaunchData):
         """
         :return: str of package this one extends
         """
-        return self['extends'] or []
+        return self['extends'] or None
+
+
+    def default_args(self):
+        """
+        :return: list of default arguments
+        """
+        return self['default_args'] or None
+
+
+    def set_base(self, base_ljson):
+        """
+        :param base_ljson: The LaunchJson that this instance overrides
+        :return: None
+        """
+        self._path = base_ljson._path
+        self._data = PlatformDict(
+            dict(merge_dicts(base_ljson._data.to_dict(), self._data.to_dict()))
+        )
 
 
 def path_ancestor(path, count):

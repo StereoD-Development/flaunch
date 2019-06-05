@@ -141,7 +141,7 @@ With this, we run `fbuild MyPackage` and we shouldn't see the `WARNING` anymore.
 What's the point of building it if we can't actually use it? Let's give the python interpreter a shot.
 
 ```
-flaunch --env MyPackage/dev --run python
+flaunch --package MyPackage/dev --run python
 ```
 
 Now you should have a python interpreter running from which you can use your package freely.

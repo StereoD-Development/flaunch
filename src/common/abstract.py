@@ -102,6 +102,9 @@ class _AbstractFLaunchData(object):
             value = total
 
         else:
+            if value is None:
+                logging.error('Cannot expand null value!')
+                return value
 
             found_to_resolve = _AbstractFLaunchData.SEARCH_REGEX.findall(value)
 
