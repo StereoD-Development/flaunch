@@ -71,7 +71,7 @@ MyPackage
     `- build.yaml
 ```
 
-Once we have that, and we're looking to build our package, we head to the command line. Do use `fbuild` you'll want to set the following environment variables:
+Once we have that, and we're looking to build our package, we head to the command line. To use `fbuild` you'll want to set the following environment variables:
 
 ```
 export FLAUNCH_BUILD_DIR=<default location you want to build packages>`
@@ -200,7 +200,7 @@ third_var: {first_var}/bar
 This means you can get very in depth with your variable control. Just be careful not to introduce a cyclic dependency. `fbuild` will detect this and fail immediately.
 
 ## Platform Routing
-In the example above, we used `{home}/bar` which search our environment for `HOME` and expanded as needed. This will work fine for Unix machines but won't work on Windows unless we set the environment variable ourselves (or pass it to props).
+In the example above, we used `{home}/bar` which searched our environment for `HOME` and expanded as needed. This will work fine for Unix machines but won't work on Windows unless we set the environment variable ourselves (or pass it to props).
 
 For both the `build.yaml` and `launch.json`, the dictionary they build will "auto route" based on the platform you're using. This is based on the `import platform; platform.system()` that python returns.
 
@@ -390,7 +390,7 @@ fbuild -v MyDerivedBuild --extra-build
 
 The `include` option is a list so multiple deriving from multiple templates is possible, and because this is `build.yaml`, you can even template based on platform. Sky is the limit.
 
-> Tip: The order of include is important. The overloading of values will continue from the first to the last. So if package `a` includes template `b` and `c` in that order, `a` is have precedence, followed by `c` and then `b` 
+> Tip: The order of include is important. The overloading of values will continue from the first to the last. So if package `a` includes template `b` and `c` in that order, `a` will take precedence, followed by `c`, and then `b` 
 
 
 # Build Types

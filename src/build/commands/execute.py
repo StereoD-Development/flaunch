@@ -103,10 +103,11 @@ class FuncCommand(_BuildCommand):
         """
         from build.parse import BuildCommandParser
 
-        commands = build_file.get_function_commands(self.data.func)
+        commands, arguments = build_file.get_function_commands(
+            self.data.func
+        )
 
         parser = BuildCommandParser(
-            commands, build_file, build_file.additional
+            commands, build_file, build_file.additional, arguments=arguments
         )
         parser.exec_()
-

@@ -7,7 +7,9 @@ from __future__ import absolute_import
 import re
 import os
 import sys
+import copy
 import logging
+from contextlib import contextmanager
 
 from .platformdict import PlatformDict
 from . import log
@@ -39,6 +41,19 @@ class _AbstractFLaunchData(object):
             return None
         return self._data[key]
 
+
+    @contextmanager
+    def overload(self, properties):
+        """
+        Context manager to handle a temporary overload of our class.
+        :param properties: dict of property information we want to overload
+        our current props with.
+        """
+        self._original_data = self._data
+        self._data = copy.deepcopy(self._data)
+        self._data.update(properties)
+        yield
+        self._data = self._original_data
 
     @property
     def path(self):

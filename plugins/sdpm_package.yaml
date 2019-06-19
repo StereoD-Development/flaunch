@@ -49,7 +49,6 @@ func__sdpm_clean_dev_build():
 
 #
 # Deployment of an sdpm package is another story completely.
-# TODO: Refine. This will also require functions with variables
 #
 func__sdpm_deploy_simple(sdpm_version, sdpm_fix_number):
   - ":SET {_sdpm_deploy_location}/{sdpm_version}/{sdpm_fix_number}/{_platform_arch} deployment_loc"

@@ -111,8 +111,15 @@ class BuildFile(_AbstractFLaunchData):
 
     def get_function_commands(self, name):
         """
-        Get a function based on it's name
+        Get a function based on it's name as well as any arguments it
+        requires
+        :param namne: The name of the function to look up (this should
+        exclude the func__)
+        :return: tuple(list[<COMMAND>,], list[str])
         """
+        commands = []
+        arguments = []
+
         if '(' in name:
             name = name[:name.index('(')]
 
@@ -120,8 +127,17 @@ class BuildFile(_AbstractFLaunchData):
             if key.startswith('func__'):
                 func_name = key[:key.index('(')].replace('func__', '')
                 if func_name == name:
-                    return self[key]
-        return []
+                    commands = self[key]
+
+                    # We've found the function, now check for arguments
+                    # we need to supply
+                    func_args_string = key[key.index('(')+1:key.index(')')]
+                    if func_args_string:
+                        func_args_string = func_args_string.split(',')
+                        arguments = [a.strip() for a in func_args]
+
+        return commands, arguments
+
 
     def _load(self):
         """
