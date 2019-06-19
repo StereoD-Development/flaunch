@@ -51,15 +51,16 @@ func__sdpm_clean_dev_build():
 # Deployment of an sdpm package is another story completely.
 # TODO: Refine. This will also require functions with variables
 #
-func__sdpm_deploy_simple(version, fix_number):
-  - ":SET {_sdpm_deploy_location}/{version}/{fix_number}/{_platform_arch} deployment_loc"
+func__sdpm_deploy_simple(sdpm_version, sdpm_fix_number):
+  - ":SET {_sdpm_deploy_location}/{sdpm_version}/{sdpm_fix_number}/{_platform_arch} deployment_loc"
   - ":MKDIR -s {deployment_loc}"
   - ":CD {build_dir}" # Should already be there but just in case
   - windows: 7z a -r ../{sdpm_archive} -w ./* # TODO: Get a python command for this
     unix: tar -cvzf ../{sdpm_archive} ./*
-  - ":COPY -f {build_dir}/* "
+  - ":COPY -f {build_dir}/* {deployment_loc}"
   - ":MOVE -f ../{sdpm_archive} {deployment_loc}"
   - ":WRITE {sdpm_rc_file} {deployment_loc}/sdpm.rc"
+  - ":CD --pop" # Go back to where we were
 
 
 build:
