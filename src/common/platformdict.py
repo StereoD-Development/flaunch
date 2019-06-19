@@ -133,8 +133,8 @@ class PlatformDict(object):
             yield (k,v)
 
 
-    def iteriterms(self):
+    def iteritems(self):
         """
         Py2 compat
         """
-        return items()
+        return self.items()

@@ -32,12 +32,14 @@ build:
   files:
     unix:
       - src
+      - py
       - flaunch
       - fbuild
       - version.txt
       - endpoints.txt
     windows:
       - src
+      - py
       - win32utils
       - flaunch.bat
       - fbuild.bat

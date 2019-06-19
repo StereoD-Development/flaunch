@@ -1,0 +1,16 @@
+#!/bin/bash
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+
+SEP=""
+if [ "$PYTHONPATH" != "" ]
+then
+  SEP=":"
+fi
+PYTHONPATH=$PYTHONPATH$SEP$DIR/py/flaunch_packages.zip python $DIR/src/build/start.py "${@:1}"

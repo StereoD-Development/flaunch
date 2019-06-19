@@ -12,7 +12,14 @@ import traceback
 import json
 from copy import deepcopy
 
-import yaml
+try:
+    import yaml
+except:
+    try:
+        import pureyaml as yaml
+        yaml.safe_load = yaml.load
+    except:
+        raise ImportError("A Yaml parser is required to build with fbuild (pip install PyYAML")
 
 from common.platformdict import PlatformDict
 from common.abstract import _AbstractFLaunchData, FLaunchDataError
@@ -31,7 +38,7 @@ class BuildFile(_AbstractFLaunchData):
     def __init__(self, package, path, manager=None):
         try:
             with open(path) as f:
-                d = yaml.safe_load(f)
+                d = yaml.safe_load(f.read())
 
                 if not d.get('props'):
                     d['props'] = {} # Make sure for plugin setup
