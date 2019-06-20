@@ -170,6 +170,6 @@ class BasicBuilder(manage.BuildManager):
         # The launch.json file is used for understanding package requirements
         # and building environments.
         #
-        self.create_launch_json(build_path)
+        self.create_launch_json(build_root)
 
 manage.BuildManager.register(BasicBuilder)
