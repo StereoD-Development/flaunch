@@ -26,7 +26,9 @@ Rather than creating complicated python build scripts for everything or handling
 * [Build Types](#build-types)
 
 # Starting Out
-Let's build a simple package to work with `fbuild`
+Let's build a simple package to work with `fbuild`.
+
+> Note: To use `fbuild`, you'll need a yaml parser. Use `pip install PyYAML` to obtain one.
 
 ## The Pacakge
 Let's say we have the follow package structure:

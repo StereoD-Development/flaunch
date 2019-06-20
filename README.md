@@ -63,3 +63,12 @@ This is where `fbuild compose` comes into play. It's a simple way to build a com
 ```
 
 That's it! `fbuild` will automatically register the package with Atom under the version `1.0.0` and give it the proper requirements and use the `"based_on"` `launch.json` arg for proper 
+
+# Update
+The `flaunch` suite will eventually need an upgrade. To make this process as painless as possible, we've added the ability to update the package at anytime with the simple command:
+
+```
+~$> fupdate
+```
+
+This command uses the same process as `flaunch` to detect is a newer package for `flaunch` exists within our repository and, if so, utilizes the files to upgrade itself.
