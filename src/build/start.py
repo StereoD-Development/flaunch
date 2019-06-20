@@ -73,6 +73,7 @@ def build_parser():
     """
     def _fill_parser_with_defaults(parser):
         parser.add_argument('-v', '--verbose', action='store_true', help='Chatty feedback when running')
+        parser.add_argument('-i', '--index', help="Use this package index URL to locate packages")
 
     parser = argparse.ArgumentParser(prog='fbuild', description=full_description)
     subparsers = parser.add_subparsers(help='Commands that can be run')
@@ -143,6 +144,9 @@ def main():
             return 1
 
         args, addon = parser.parse_known_args(['build'] + sys.argv[1:])
+
+    if args.index:
+        os.environ["FLAUNCH_CUSTOM_INDEX"] = args.index
 
     args.additional_arguments = addon
 

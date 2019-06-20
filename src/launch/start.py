@@ -86,7 +86,7 @@ def _prep_launch_jsons(args, env=None):
     #
     # Possible locations that development builds might be located
     #
-    build_locations = os.environ.get(FLAUNCH_BUILD_DIR, "")
+    build_locations = os.environ.get(FLAUNCH_BUILD_DIR, [])
     if build_locations:
         build_locations = build_locations.split(os.pathsep)
     build_locations += (args.dev_repo or [])
@@ -138,7 +138,7 @@ def launch_application(args):
     env = _prep_env_for_launch(args, args.application, exec_name, args.app_args)
     packages = set(getattr(args, 'packages', []))
 
-    build_locations = os.environ.get(FLAUNCH_BUILD_DIR, "")
+    build_locations = os.environ.get(FLAUNCH_BUILD_DIR, [])
     if build_locations:
         build_locations = build_locations.split(os.pathsep)
     build_locations += (args.dev_repo or [])
@@ -190,6 +190,7 @@ def build_parser():
         parser.add_argument('-v', '--verbose', action='store_true', help="Give feedback while working")
         parser.add_argument('-l', '--log', help="Push logging information to a file")
         parser.add_argument('-f', '--force', help="Force redownload any packages that this command uses")
+        parser.add_argument('-i', '--index', help="Use this package index URL to locate packages")
 
         # -- Environment tools
         parser.add_argument('-p', '--package', action='append', help='The package(s) to use with this command')
@@ -251,6 +252,9 @@ def main():
 
     log.start(args.verbose, args.log)
     logging.debug("Starting Command...")
+
+    if args.index:
+        os.environ["FLAUNCH_CUSTOM_INDEX"] = args.index
 
     if not hasattr(args, 'func'):
         logging.critical('Unknown command!')
