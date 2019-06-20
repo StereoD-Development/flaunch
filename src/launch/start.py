@@ -178,19 +178,6 @@ def launch_application(args):
     return 0
 
 
-def update_flaunch(args):
-    """
-    Update the flaunch toolkit locally based on the current version available within
-    our package repo
-    """
-    logging.debug('Checking for FLaunch updates...')
-    results = communicate.get_flaunch_info()
-    if not results:
-        return 1
-    pkgrep.update_flaunch(results)
-    return 0
-
-
 def build_parser():
     """
     Build the application parser. Based on all of this, we'll decide on what the user
@@ -234,11 +221,6 @@ def build_parser():
     _fill_parser_with_defaults(clear_parser)
     clear_parser.add_argument('applications', nargs=argparse.REMAINDER, help="Applications that we're clearing out")
     clear_parser.set_defaults(func=clear_applications)
-
-    # -- update
-    update_parser = subparsers.add_parser('update', help="Update the flaunch tool")
-    _fill_parser_with_defaults(update_parser)
-    update_parser.set_defaults(func=update_flaunch)
 
     return parser
 

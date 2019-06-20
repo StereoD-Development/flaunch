@@ -264,6 +264,7 @@ def get_flaunch_info():
         logging.error('Cannot locate flaunch package on your facility: {}'.format(
             FLUX_FACILITY
         ))
+        logging.error(data['error'])
         return None
     return data
 

@@ -166,7 +166,9 @@ def _get_package(package, version=None, info=None, builds=[], force=False):
                     .format(package)
                 )
 
-    return utils.LaunchJson(package, launch_json)
+    lj = utils.LaunchJson(package, launch_json)
+    lj.version_number = info['version']
+    return lj
 
 def resolve_packages(package_list, retrieved, builds=[], all_ljsons=None):
     """
@@ -332,29 +334,5 @@ def clear_package(package):
     else:
         logging.debug('Cleaning: {}'.format(package))
         root_pkg_path = utils.local_path(package)
-    shutil.rmtree(root_pkg_path)
-
-
-def update_flaunch(flaunch_info):
-    """
-    Assert that we're using the latest version of flaunch available. If we're
-    not - let's update our code right away
-    :param flaunch_info: dict of information sent from atom about this package
-    :return: None
-    """
-    version_file = os.path.join(utils.path_ancestor(
-        os.path.abspath(__file__), 3
-    ),  'version.txt')
-
-    current_version = ''
-    with open(version_file, 'r') as f:
-        f.seek(0)
-        current_version = f.readline().strip()
-
-    if current_version == flaunch_info['version']:
-        logging.info('FLaunch is up to date! Version: {}'.format(current_version))
-        return 0
-
-    # -- We have the the wrong version, time to upgrade
-    launch_json = _get_package('flaunch', info=flaunch_info)
-    # -- TODO
+    if os.path.exists(root_pkg_path):
+        shutil.rmtree(root_pkg_path)

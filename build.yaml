@@ -27,24 +27,22 @@ build:
   type: basic
 
   #
-  # What to include in our build
+  # What to include in our build - we include both
+  # the windows and linux files to make it agnostic
+  # for server-side deployments
   #
   files:
-    unix:
-      - src
-      - py
-      - flaunch
-      - fbuild
-      - version.txt
-      - endpoints.txt
-    windows:
-      - src
-      - py
-      - win32utils
-      - flaunch.bat
-      - fbuild.bat
-      - version.txt
-      - endpoints.txt
+    - src
+    - py
+    - flaunch.bat
+    - flaunch
+    - fbuild.bat
+    - fbuild
+    - fupdate.bat
+    - fupdate
+    - selfupdate.py
+    - version.txt
+    - endpoints.txt
 
   #
   # We just define the launch.json from here
