@@ -21,8 +21,6 @@ except ImportError as e:
 from . import log
 from . import utils
 
-ATOM_ENDPOINT = 'http://192.168.56.120:8000'
-ATOM_REST_URL = ATOM_ENDPOINT + '/rest/latest'
 FLUX_FACILITY = os.environ.get('FLUX_FACILITY', 'Madrid')
 
 
@@ -127,17 +125,22 @@ class ConnectionManager(object):
         """
         Time to find our atom instance!
         """
-        if self._settings.get(self.LAST_KNOWN, None):
+
+        if os.environ.get("FLAUNCH_CUSTOM_INDEX"):
+            if self._test_connection(os.environ["FLAUNCH_CUSTOM_INDEX"]):
+                return os.environ["FLAUNCH_CUSTOM_INDEX"]
+
+        elif self._settings.get(self.LAST_KNOWN, None):
             # -- Test this one
             if self._test_connection(self._settings[self.LAST_KNOWN]):
                 return self._settings[self.LAST_KNOWN]
 
-        for endpoint in self._endpoints():
-            endpoint = endpoint.strip()
-            if self._test_connection(endpoint):
-                # We've found a viable connection
-                self._save_setting(self.LAST_KNOWN, endpoint)
-                return endpoint
+            for endpoint in self._endpoints():
+                endpoint = endpoint.strip()
+                if self._test_connection(endpoint):
+                    # We've found a viable connection
+                    self._save_setting(self.LAST_KNOWN, endpoint)
+                    return endpoint
 
         # -- If we've made it here, none of the endpoints have
         # panned out. That's no good. Need to fail
