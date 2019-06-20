@@ -334,7 +334,13 @@ class BuildManager(object):
             with open(ljson_path, 'w') as f:
                 json.dump(bf_build['launch_json'].to_dict(), f, sort_keys=True, indent=4)
 
-        elif not os.path.exists(ljson_path):
+        else:
+            real_path = os.path.join(self._build_file.path, 'launch.json')
+            if os.path.isfile(real_path):
+                import shutil
+                shutil.copy2(real_path, ljson_path)
+
+        if not os.path.exists(ljson_path):
             # Not hyper critical
             logging.warning('launch.json file not found! Expect issues when launching!')
 
