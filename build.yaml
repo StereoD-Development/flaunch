@@ -56,6 +56,17 @@ build:
 #
 # This changes significantly between setups.
 #
-# deploy:
-#   endpoints:
-#     - 
+deploy:
+
+  branch: master
+
+#
+# Section where we can build arbitrary command sequences for
+# calling whenever our hearts desire
+#
+# custom:
+
+#   custom_deploy:
+
+#     commands:
+#       - 

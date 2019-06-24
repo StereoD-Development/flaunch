@@ -278,7 +278,7 @@ def get_package_info(package, version=None):
     :return: dict|None 
     """
     vs = ' (' + str(version) + ')'
-    logging.info("Getting: " + package + "{}".format(vs if version else ''))
+    logging.debug("Getting: " + package + "{}".format(vs if version else ''))
 
     extras = {}
     if version:
@@ -291,14 +291,17 @@ def get_package_info(package, version=None):
 
     data = result.json()
     if 'error' in data:
-        logging.error('Cannot locate package: {} for your facility: {}'.format(
+        logging.error('Cannot locate package: \"{}\" for your facility: {}'.format(
             package,
             FLUX_FACILITY
         ))
-        logging.error('Reason:')
+        logging.debug('Reason:')
         with log.log_indent():
-            logging.error(data['error'])
+            logging.debug(data['error'])
+
+        find_similar_pacakges(package) # Will try to find what the user meant
         return None
+
     return data
 
 
@@ -381,3 +384,50 @@ def register_package(package, version, method='get', launch_data=None, force=Fal
             return None
 
         return data
+
+
+def get_packges(**params):
+    """
+    Simple function to gather all packages. This doesn't have
+    any repository data - just name, version, and possible launch_data
+    :param params: Additional search parameters for the package
+        - name: string fnmatch name to search on
+        - id: int id of a package to search
+    """
+    result = _get('/core/package/get/all', **params)
+
+    try:
+        result.raise_for_status()
+    except:
+        logging.critical('flaunch package not defined in your repository!')
+        return []
+
+    data = result.json()
+    if isinstance(data, dict) and 'error' in data:
+        logging.error('Error getting packages:')
+        with log.log_indent():
+            logging.error(data['error'])
+        return []
+
+    return data
+
+
+def find_similar_pacakges(package_name):
+    """
+    Based on the available packages, let's try finding similarly named
+    packages to give the user an idea of what they might need
+    :param package_name: The package that was entered
+    :return: None
+    """
+    diffs = []
+
+    all_pacakges = get_packges()
+    for package in all_pacakges:
+        diff = utils.levenshtein(package_name.lower(), package['package'].lower())
+        diffs.append((diff, package['package']))
+
+    diffs.sort(key=lambda x: x[0])
+
+    if diffs:
+        with log.log_indent():
+            logging.info("Did you mean: {} ?".format(diffs[0][1]))

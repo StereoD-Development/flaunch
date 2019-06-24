@@ -179,7 +179,6 @@ class DelCommand(_BuildCommand):
         """
         Time to run!
         """
-
         to_remove = glob.glob(self.data.path)
 
         for rem in to_remove:
@@ -190,3 +189,89 @@ class DelCommand(_BuildCommand):
                 shutil.rmtree(rem)
             else:
                 os.unlink(rem)
+
+
+class ZipCommand(_BuildCommand):
+    """
+    Zip up files/directories
+    """
+    alias = 'ZIP'
+
+    def description(self):
+        return 'Zip up files/directories - recursive by default'
+
+
+    def populate_parser(self, parser):
+        """
+        A few options to give the user preference over
+        what to do
+        """
+        parser.add_argument(
+            'archive',
+            help='The name of the archive to create'
+        )
+
+        parser.add_argument(
+            '-x', '--exclude',
+            help='File patterns to ignore (unix pattern matching ok)',
+            action='append'
+        )
+
+        parser.add_argument(
+            '-f', '--file',
+            help='File or directory to include (can be used multiple times)',
+            action='append'
+        )
+
+        parser.add_argument(
+            '-r', '--root',
+            help='Alternate root location to use. Default is the commmon prefix'
+        )
+
+        parser.add_argument(
+            '-a', '--append',
+            help='If the archive already exists, just append to it.',
+            action='store_true'
+        )
+
+
+    def _common_prefix(self, files):
+        """
+        Platform agnostic way to determine the common prefix in a set
+        of paths
+        :param files: list[str] of files to check on
+        :return: str
+        """
+        return os.path.commonprefix(files)
+
+
+    def run(self, build_file):
+        """
+        Run the command, zipping up files as needed
+        """
+        from common import compression
+
+        files = self.data.file
+
+        # Make sure we have absolute paths
+        ready_files = list(map(os.path.abspath, files))
+
+        # With said paths, make sure we all have the same slash direction
+        ready_files = list(map(lambda x: x.replace('\\', '/'), ready_files))
+
+        root = self.data.root
+        if root is None:
+            root = self._common_prefix(ready_files)
+
+        name = self.data.archive
+        if not name.endswith('.zip'):
+            name += '.zip'
+
+        compression.zip_files(
+            name=name,
+            files=ready_files,
+            root=root,
+            mode='a' if self.data.append else 'w',
+            ignore=self.data.exclude or []
+        )
+
