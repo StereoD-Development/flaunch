@@ -1,17 +1,19 @@
 """
 Entry point fot the build/deployment tools
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import os
 import sys
 import argparse
 import logging
+import traceback
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from build import manage
 from build import command
 from build import compose
+from build import raw
 from common import utils
 from common import log
 
@@ -59,6 +61,38 @@ def _commands(args):
             inst._parser.print_help()
 
 
+def _raw(args):
+    """
+    Exection of arbtrary COMMAND_LISTS fed through our build.yaml file
+    """
+    manager = raw.RawCommandManager.get_manager(args.package, args)
+    if args.list_commands:
+        print ("Raw commands for: {}".format(args.package))
+        data = manager.all_commmands()
+        for comm, info in sorted(data.items()):
+
+            help_, args = info
+
+            print ("-----------------------------------------------")
+            print ('-', comm + ':')
+            for l in help_.strip().split('\n'):
+                print ("    ", l)
+
+            print ("     - Arguments:")
+            for arg in args:
+                printme = arg
+                if isinstance(arg, list):
+                    if len(arg) > 1:
+                        printme = arg[0] + ': ' + arg[1]
+                    else:
+                        printme = arg[0]
+                print ("        ", printme)
+
+            print ("")
+    else:
+        manager.run_raw_commands()
+
+
 def _compose(args):
     """
     Composing a launcher
@@ -84,7 +118,6 @@ def build_parser():
     builder.add_argument('package', help='The package we\re building')
     builder.add_argument('-c', '--custom', nargs=2, metavar=('YAML', 'SOURCE'), help='Custom yaml file and source directory location')
     builder.add_argument('-o', '--output-directory', metavar='DIR', help='Custom build location to place these files into')
-    builder.add_argument('-l', '--local', action='store_true', help='Build based on local files (for development)')
     builder.add_argument('-n', '--no-clean', action='store_true', help='For complex builds, do not destroy the build '
                                                                        'directory. Also known as a delta build')
     builder.add_argument('-t', '--tag', help='Tag to checkout')
@@ -102,6 +135,15 @@ def build_parser():
     _fill_parser_with_defaults(helper)
     helper.add_argument('-d', '--docs', action='store_true', help='Print all known commands and their arguments')
     helper.set_defaults(func=_commands)
+
+    # -- Raw Command Toolkit
+    raw_commands = subparsers.add_parser('raw', help='Run loose structured commands from our build.yaml files')
+    _fill_parser_with_defaults(raw_commands)
+    raw_commands.add_argument('package', help='The package that we\'re running commands through')
+    raw_commands.add_argument('command_name', nargs='?', help='The command list to execute (key underneath the "raw" section of the build.yaml)')
+    raw_commands.add_argument('-l', '--list-commands', action='store_true', help='Provide a listing of possible commands')
+    raw_commands.add_argument('-c', '--custom', nargs=2, metavar=('YAML', 'SOURCE'), help='Custom yaml file and source directory location')
+    raw_commands.set_defaults(func=_raw)
 
     # -- Launcher composer
     composer = subparsers.add_parser('compose', help='Create a custom flaunch command')
@@ -133,7 +175,8 @@ def main():
 
     try:
         args, addon = parser.parse_known_args()
-    except:
+    except Exception as e:
+        # print (traceback.format_exc())
         # Ignore help requests
         if '-h' in sys.argv or '--help' in sys.argv:
             return 0

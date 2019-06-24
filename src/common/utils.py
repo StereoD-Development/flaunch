@@ -19,6 +19,16 @@ from .abstract import _AbstractFLaunchData, FLaunchDataError
 PY3 = sys.version_info[0] == 3
 SYSTEM = platform.system()
 
+try:
+    import yaml
+except:
+    try:
+        import pureyaml as yaml # Current version is broken but you never know
+        yaml.safe_load = yaml.load
+    except:
+        raise ImportError("A yaml parser is required to use fbuild - " \
+                          "developers should use \"pip install PyYAML\"")
+
 if PY3:
     def _iter(it):
         return it.items()
@@ -243,3 +253,15 @@ def levenshtein(s1, s2):
         previous_row = current_row
     
     return previous_row[-1]
+
+
+def cli_name(arg):
+    """
+    Convert an argument name into the cli equivalent
+    
+    Basically this just adds '--' to the front and converts '_' to '-'
+
+    :param arg: str to convert
+    :return: str
+    """
+    return '--' + arg.replace('_', '-')
