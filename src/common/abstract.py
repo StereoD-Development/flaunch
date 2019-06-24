@@ -27,6 +27,11 @@ class _AbstractFLaunchData(object):
     SEARCH_REGEX = re.compile(r"\{+[^\{|\s]+\}")
 
     def __init__(self, package, path, data):
+        """
+        :param package: The name of the pacakge we're working with
+        :param path: The path to this data repo
+        :param data: PlatformDict that holds onto our data
+        """
         self._package = package
         self._path = path
         self._data = data
@@ -51,9 +56,12 @@ class _AbstractFLaunchData(object):
         """
         self._original_data = self._data
         self._data = copy.deepcopy(self._data)
-        self._data.update(properties)
+        if not self._data['props']:
+            self._data['props'] = {}
+        self._data['props'].update(properties)
         yield
         self._data = self._original_data
+
 
     @property
     def path(self):
@@ -175,7 +183,7 @@ class _AbstractFLaunchData(object):
             for sub_val in still_to_resolve:
                 if sub_val in found:
                     if sub_val[1:-1] not in env:
-                        logging.debug('Unknown property: {}'.format(sub_val))
+                        logging.warning('Unknown property: {}'.format(sub_val))
                         unknown.add(sub_val)
                         continue
 

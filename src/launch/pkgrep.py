@@ -46,6 +46,7 @@ def _download(info, dest, filename):
         logging.debug("To: " + arch_path)
         shutil.copy2(path, arch_path)
 
+
 def _extract(zipfile_path):
     """
     Unzip a file
@@ -55,6 +56,7 @@ def _extract(zipfile_path):
     zip_ref = zipfile.ZipFile(zipfile_path, 'r')
     zip_ref.extractall(os.path.dirname(zipfile_path))
     zip_ref.close()
+
 
 def _get_package_and_version(package):
     """
@@ -73,6 +75,7 @@ def _get_package_and_version(package):
     if '/' in package:
         package, version = package.split('/')
     return (package, version)
+
 
 def _get_package(package, version=None, info=None, builds=[], force=False):
     """
@@ -169,6 +172,7 @@ def _get_package(package, version=None, info=None, builds=[], force=False):
     lj = utils.LaunchJson(package, launch_json)
     lj.version_number = info['version']
     return lj
+
 
 def resolve_packages(package_list, retrieved, builds=[], all_ljsons=None):
     """

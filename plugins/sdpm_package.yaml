@@ -19,6 +19,9 @@ props:
 
   _sdpm_deploy_location: "{_platform_server}/s3d/resources/sw/packages/{package}"
 
+  # -- Test
+  # _sdpm_deploy_location: "C:/repo/temp/sdpm_deploy/{package}"
+
   _dev_build: "{source_dir}/dev/dist/{_platform_arch}"
 
   # -- This is where the overloading will come in.
@@ -52,12 +55,13 @@ func__sdpm_clean_dev_build():
 #
 func__sdpm_deploy_simple(sdpm_version, sdpm_fix_number):
   - ":SET {_sdpm_deploy_location}/{sdpm_version}/{sdpm_fix_number}/{_platform_arch} deployment_loc"
+  - ":DEL {deployment_loc}"
   - ":MKDIR -s {deployment_loc}"
   - ":CD {build_dir}" # Should already be there but just in case
-  - windows: 7z a -r ../{sdpm_archive} -w ./* # TODO: Get a python command for this
-    unix: tar -cvzf ../{sdpm_archive} ./*
+  - windows: ":ZIP ../{_sdpm_archive} -f ./"
+    unix: tar -cvzf ../{_sdpm_archive} ./*
   - ":COPY -f {build_dir}/* {deployment_loc}"
-  - ":MOVE -f ../{sdpm_archive} {deployment_loc}"
+  - ":MOVE -f ../{_sdpm_archive} {deployment_loc}"
   - ":WRITE {sdpm_rc_file} {deployment_loc}/sdpm.rc"
   - ":CD --pop" # Go back to where we were
 
@@ -81,7 +85,7 @@ deploy:
   # We need to be able to pack up the sdpm packages
   #
   local_required:
-    windows:
-      - 7z
+    windows: []
     unix:
       - tar
+

@@ -59,10 +59,10 @@ class BuildCommandParser(object):
         self._temp_properties = {}
         if arguments is not None:
             for argument in arguments:
-                cli_name = '--' + argument
+                cli_name = '--' + argument.replace('_', '-')
                 if cli_name in self._additional:
                     idx = self._additional.index(cli_name)
-                    if idx + 2 >= len(self._additional):
+                    if idx + 2 <= len(self._additional):
                         self._temp_properties[argument] = self._additional[idx + 1]
 
     def exec_(self):
@@ -125,6 +125,9 @@ class BuildCommandParser(object):
                 elif isinstance(command_info, (list, tuple)):
                     # Just a platform reroute
                     self._exec_internal(command_info)
+                elif isinstance(command_info, utils.string_types):
+                    # Single command platform reroute
+                    self._exec_internal([command_info])
 
 
             elif isinstance(command_info, utils.string_types):

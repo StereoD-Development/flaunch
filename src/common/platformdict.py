@@ -85,6 +85,10 @@ class PlatformDict(object):
         return val
 
 
+    def __setitem__(self, key, value):
+        self.__d[key] = value
+
+
     def __iter__(self):
         return self.__d.__iter__()
 

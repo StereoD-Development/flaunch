@@ -141,7 +141,7 @@ class BuildFile(_AbstractFLaunchData):
                     # we need to supply
                     func_args_string = key[key.index('(')+1:key.index(')')]
                     if func_args_string:
-                        func_args_string = func_args_string.split(',')
+                        func_args = func_args_string.split(',')
                         arguments = [a.strip() for a in func_args]
 
         return commands, arguments
