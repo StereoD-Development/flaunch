@@ -33,7 +33,7 @@ class _AbstractFLaunchData(object):
         :param data: PlatformDict that holds onto our data
         """
         self._package = package
-        self._path = path
+        self._path = path.replace('\\', '/')
         self._data = data
 
 
@@ -87,6 +87,15 @@ class _AbstractFLaunchData(object):
         :return: str
         """
         return self._package
+
+
+    @property
+    def flaunch_data_path(self):
+        """
+        The full path to this file
+        :return: str
+        """
+        return self._path
 
 
     def attributes(self):

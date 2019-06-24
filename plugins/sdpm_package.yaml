@@ -17,10 +17,10 @@ props:
     linux: sdpm.tar.gz
     windows: sdpm.zip
 
-  _sdpm_deploy_location: "{_platform_server}/s3d/resources/sw/packages/{package}"
+  # _sdpm_deploy_location: "{_platform_server}/s3d/resources/sw/packages/{package}"
 
   # -- Test
-  # _sdpm_deploy_location: "C:/repo/temp/sdpm_deploy/{package}"
+  _sdpm_deploy_location: "C:/repo/temp/sdpm_deploy/{package}"
 
   _dev_build: "{source_dir}/dev/dist/{_platform_arch}"
 
@@ -32,7 +32,7 @@ props:
     class SdpmRc(SdpmRcBase):
       """ Default SDPM wrapper for fbuild """
       def pathEnv(self):
-        return { "PATH": [self._path]}
+        return { "PATH": [self._path] }
 
 
 #
@@ -79,13 +79,28 @@ build:
     - ["--sdpm", ":FUNC sdpm_dev_build()"]
 
 
-deploy:
+raw:
 
-  #
-  # We need to be able to pack up the sdpm packages
-  #
-  local_required:
-    windows: []
-    unix:
-      - tar
+  sdpm_clean:
 
+    help: |
+      Clean out the sdpm build directory (typically located
+      in your source dir under dev/)
+
+    commands:
+      - ":FUNC sdpm_clean_dev_build()"
+
+
+  sdpm_deploy:
+
+    help: |
+      Deploy built files as an sdpm capable pacakge. Must build
+      locally before running this command for that's what will
+      be deployed.
+
+    arguments:
+      - [sdpm_version,    Major.Minor.Subminor version to deploy to, '[0-9]+\.[0-9]+\.[0-9]+']
+      - [sdpm_fix_number, "#### fix number", '[0-9]{4}']
+
+    commands:
+      - ":FUNC sdpm_deploy_simple()"

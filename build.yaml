@@ -64,9 +64,13 @@ deploy:
 # Section where we can build arbitrary command sequences for
 # calling whenever our hearts desire
 #
-# custom:
+raw:
 
-#   custom_deploy:
+  # run with: fbuilc raw flaunch custom_print_example
+  custom_print_example:
 
-#     commands:
-#       - 
+    help:
+      "An example of a raw command"
+
+    commands:
+        - ":PRINT Example command that does some work with {package} in {source_dir}"
