@@ -105,12 +105,19 @@ class BuildFile(_AbstractFLaunchData):
         requires
         :param namne: The name of the function to look up (this should
         exclude the func__)
-        :return: tuple(list[<COMMAND>,], list[str])
+        :return: tuple(list[<COMMAND>,], dict[str:str], list[str])
         """
-        commands = []
-        arguments = []
+        commands = []  # The COMMAND_LIST we're about to run
+        supplied = {}  # Arguments that we've supplied with the function
+        arguments = [] # Global variables to look for
 
+        supplied_args = []
         if '(' in name:
+            found_supplied = name[name.index('(')+1:name.index(')')]
+            if found_supplied:
+                found_supplied = found_supplied.split(',')
+                supplied_args = list(map(lambda x: x.strip(), found_supplied))
+
             name = name[:name.index('(')]
 
         for key, value in utils._iter(self._data):
@@ -126,7 +133,16 @@ class BuildFile(_AbstractFLaunchData):
                         func_args = func_args_string.split(',')
                         arguments = [a.strip() for a in func_args]
 
-        return commands, arguments
+                    if len(supplied_args) > len(arguments):
+                        raise RuntimeError('Invalid number of arguments for {}.'
+                                           ' Expected <= {}, got {}'.format(
+                            name, len(arguments), len(supplied_args)
+                        ))
+
+                    for supplied_arg in supplied_args:
+                        supplied[arguments.pop(0)] = self.expand(supplied_arg)
+
+        return commands, supplied, arguments
 
 
     def _load(self):

@@ -40,7 +40,9 @@ def _deploy(args):
     :param args: The args namespace object our parser returns
     :return: None
     """
-    pass
+    manager = deploy.DeployManager.get_manager(args.package, args)
+    manager.run_deploy()
+    logging.info('Deployment Complete')
 
 
 def _commands(args):
@@ -64,6 +66,7 @@ def _commands(args):
 def _raw(args):
     """
     Exection of arbtrary COMMAND_LISTS fed through our build.yaml file
+    :return: None
     """
     manager = raw.RawCommandManager.get_manager(args.package, args)
     if args.list_commands:
@@ -183,7 +186,7 @@ def main():
 
         parser.error = original_error
 
-        if sys.argv[1] in ('build', 'deploy', 'compose', 'commands'):
+        if sys.argv[1] in ('build', 'raw', 'deploy', 'compose', 'commands'):
             return 1
 
         args, addon = parser.parse_known_args(['build'] + sys.argv[1:])

@@ -43,7 +43,7 @@ class BuildCommandParser(object):
     """
     LOCAL_COMMAND = re.compile(r'^:(?P<alias>[^\s]+)(\s)?(?P<args>(.*))$')
 
-    def __init__(self, commands=[], build_file=None, additional=None, arguments=None):
+    def __init__(self, commands=[], build_file=None, additional=None, supplied=None, arguments=None):
         if not isinstance(commands, (list, tuple)):
             logging.critical(
                 'Commands must be in an array!, Got {}' .format(type(commands))
@@ -55,6 +55,7 @@ class BuildCommandParser(object):
         self._commands = commands
         self._build_file = build_file
         self._additional = additional
+        self._supplied = supplied
 
         self._temp_properties = {}
         if arguments is not None:
@@ -65,12 +66,20 @@ class BuildCommandParser(object):
                     if idx + 2 <= len(self._additional):
                         self._temp_properties[argument] = self._additional[idx + 1]
 
+
     def exec_(self):
         """
         Run through our commands and run them!
         """
         with self._build_file.overload(self._temp_properties):
+
+            if self._supplied:
+                for arg, val in utils._iter(self._supplied):
+                    # Will revert once overload is over
+                    self._build_file.add_attribute(arg, self._build_file.expand(val))
+
             self._exec_internal(self._commands)
+
 
     def _exec_internal(self, commands):
         """

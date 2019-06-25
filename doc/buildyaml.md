@@ -1,7 +1,9 @@
 build.yaml
 ==========
 
-The `fbuild` command helps merge the worlds of building a package, testing it in development and production environments, along with deployment when required.
+> Polymorphism, meet DevOps
+
+The `fbuild` framework helps merge the worlds of building a package, testing it in development and production environments, along with deployment when required.
 
 At the heart of `flaunch` packages is the `build.yaml` files and our utility of them.
 
@@ -23,6 +25,9 @@ Rather than creating complicated python build scripts for everything or handling
 * [General Options](#general-options)
     * [Pre and Post Operations](#pre-and-post-operations)
 * [Templates and Functions](#templates-and-functions)
+* [Raw Commands](#raw-commands)
+    * [Command Arguments](#command-arguments)
+    * [Listing Commands](#listing-commands)
 * [Build Types](#build-types)
 
 # Starting Out
@@ -30,7 +35,7 @@ Let's build a simple package to work with `fbuild`.
 
 > Note: To use `fbuild`, you'll need a yaml parser. Use `pip install PyYAML` to obtain one.
 
-## The Pacakge
+## The Package
 Let's say we have the follow package structure:
 
 ```
@@ -394,6 +399,57 @@ The `include` option is a list so multiple deriving from multiple templates is p
 
 > Tip: The order of include is important. The overloading of values will continue from the first to the last. So if package `a` includes template `b` and `c` in that order, `a` will take precedence, followed by `c`, and then `b` 
 
+# Raw Commands
+Intense pipelines often present the desire for automation outside of just building and deployment. For this reason, we've included `raw` commands to help execute arbitrary commands.
+
+```yaml
+# build.yaml
+
+# ...
+
+raw:
+
+  custom_command:
+    help: |
+      A custom command that can be run at any time and even
+      flows through the templating system for ease of use
+
+    arguments:
+      - [foo_bar, A required parameter to be passed in]
+
+    # The COMMAND_LIST to run
+    commands:
+      - ":FUNC a_custom_command()"
+```
+
+Given the above `raw` command, we can then access it through our `fbuild raw` interface.
+
+```
+~$> fbuild raw MyPackage custom_command --foo-bar foo_bar_value
+```
+
+Because this works in templates, it turns automation procedures into pseudo object oriented design.
+
+## Command Arguments
+The arguments supplied in our `custom_command` through the cli take the same form as those in our `build` and `deploy` command. To learn more, see the [:FUNC documentation about them](./build_commands.md#func-arguments)
+
+> Note: Raw commands that have arguments will fail if any arguments are not supplied in the command
+
+
+## Listing Commands
+At any time, you can get a list of available `raw` commands from your package
+
+```
+~$> fbuild raw MyPackage --list-commands
+Raw commands for: MyPackage
+--------------------------------------------------------
+- custom_command:
+    A custom command that can be run at any time and even
+    flows through the templating system for ease of use
+    - Arguments:
+        foo_bar: A required parameter to be passed in
+# ... Additional commands
+```
 
 # Build Types
 
