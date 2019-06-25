@@ -60,6 +60,17 @@ deploy:
 
   branch: master
 
+  #
+  # In the event we have a compiled application, we may have the
+  # built files installed into a separate location
+  #
+  compiled_files: "{flux_package_predeploy_folder}/flaunch/{deploy_version}"
+
+  # commands:
+  #   -
+  #   - ":DEPLOY" # This _must_ be the last command if you want the deployment to go out around the world
+
+
 #
 # Section where we can build arbitrary command sequences for
 # calling whenever our hearts desire

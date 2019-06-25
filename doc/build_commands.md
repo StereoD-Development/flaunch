@@ -160,6 +160,29 @@ Then it's up to you what you want to do within that Command List. You can use al
 
 > Warning: Because we don't have a way to break out of a function and arguments are always global, for the time being be careful not to introduce a loop, which will go on forever.
 
+### :FUNC Arguments
+With the latest version of `fbuild`, we've introduced arguments into functions.
+
+You have the ability to provide through two interfaces.
+
+1. Through `props:`
+    * This is pretty straight forward and allows you to provide different values as needed
+2. Through the cli
+
+For the second option, things get really interesting, let's look at an example
+
+```yaml
+func__function_with_args(foo_bar, schmoo):
+  - ":PRINT {foo_bar}"
+  - ":PRINT {schmoo}"
+```
+
+Now that our function has arguments, we can supply them through the cli with a slight "converted" syntax. This systax simply prepends `--` and converts `_` to `-`. For the example above the arguments would look like:
+
+```
+~$> ... --foo-bar the_first_value --schmoo another_value
+```
+
 # Chaining Commands
 With all of these concepts, and the power of the `build.yaml` including Variable Expansion and Platform Routing we can generate very potent commands to fit our needs.
 

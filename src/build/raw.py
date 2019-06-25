@@ -25,7 +25,9 @@ class RawCommandManager(_AbstractManager):
         if self._command:
 
             if self._command not in self.raw_commands():
-                logging.critical('Command not found: "{}" in file: {}'.format(self._command, self.build_file.flaunch_data_path))
+                logging.critical('Command not found: "{}" in file: {}'.format(
+                    self._command, self.build_file.flaunch_data_path
+                ))
                 sys.exit(1)
 
             if not self.raw_commands()[self._command]['commands']:
@@ -85,7 +87,24 @@ class RawCommandManager(_AbstractManager):
                     missing.append(r)
 
             if missing:
-                logging.critical("Missing required variable{}: {}".format('s' if len(missing) > 1 else '', ', '.join(missing)))
+                logging.critical("Missing required variable{}: {}".format(
+                    's' if len(missing) > 1 else '',
+                    ', '.join(missing)
+                ))
                 sys.exit(1) # ??
 
-        self.build_commands(condition=None, build_data=this_command['commands'], type_='Raw')
+        entering_parameters = {}
+        for req in required:
+            req_name = req[0]
+            idx = self.additional.index(utils.cli_name(req_name))
+
+            if idx + 2 > len(self.additional):
+                logging.critical('Missing value for {}!'.format(req_name))
+                sys.exit(1)
+
+            entering_parameters[req_name] = self.additional[idx + 1]
+
+        with self.build_file.overload(entering_parameters):
+            self.build_commands(
+                condition=None, build_data=this_command['commands'], type_='Raw'
+            )

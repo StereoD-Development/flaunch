@@ -55,7 +55,7 @@ class _AbstractFLaunchData(object):
         our current props with.
         """
         self._original_data = self._data
-        self._data = copy.deepcopy(self._data)
+        self._data = copy.deepcopy(self._data) # Could use a delta-aware dict
         if not self._data['props']:
             self._data['props'] = {}
         self._data['props'].update(properties)

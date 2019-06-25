@@ -93,7 +93,8 @@ class FuncCommand(_BuildCommand):
         """
         parser.add_argument(
             'func',
-            help='The function to execute'
+            help='The function to execute',
+            nargs=argparse.REMAINDER
         )
 
 
@@ -103,11 +104,15 @@ class FuncCommand(_BuildCommand):
         """
         from build.parse import BuildCommandParser
 
-        commands, arguments = build_file.get_function_commands(
-            self.data.func
+        commands, supplied_arguments, global_arguments = build_file.get_function_commands(
+            ''.join(self.data.func)
         )
 
         parser = BuildCommandParser(
-            commands, build_file, build_file.additional, arguments=arguments
+            commands,
+            build_file,
+            build_file.additional,
+            supplied=supplied_arguments,
+            arguments=global_arguments
         )
         parser.exec_()

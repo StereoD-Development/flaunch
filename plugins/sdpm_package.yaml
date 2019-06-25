@@ -103,4 +103,4 @@ raw:
       - [sdpm_fix_number, "#### fix number", '[0-9]{4}']
 
     commands:
-      - ":FUNC sdpm_deploy_simple()"
+      - ":FUNC sdpm_deploy_simple({sdpm_version}, {sdpm_fix_number})"
