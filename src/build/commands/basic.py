@@ -284,6 +284,11 @@ class SetCommand(_BuildCommand):
         Simple two slot arguments
         """
         parser.add_argument(
+            '-r', '--resolve-path',
+            help='Resolve a path to it\'s absolute location'
+        )
+
+        parser.add_argument(
             'value',
             help='The value to pass into the property'
         )
@@ -297,4 +302,7 @@ class SetCommand(_BuildCommand):
         """
         Set the property...
         """
-        build_file.add_attribute(self.data.property, self.data.value)
+        value = self.data.value
+        if self.data.resolve_path:
+            value = os.path.abspath(value)
+        build_file.add_attribute(self.data.property, value)

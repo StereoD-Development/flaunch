@@ -116,3 +116,55 @@ class FuncCommand(_BuildCommand):
             arguments=global_arguments
         )
         parser.exec_()
+
+
+class SuperCommand(_BuildCommand):
+    """
+    Commands for calling template functionality
+    """
+    alias = 'SUPER'
+
+    def description(self):
+        return 'Call commands from an inherited template'
+
+
+    def populate_parser(self, parser):
+        parser.add_argument(
+            'command',
+            help='"." delimited sequence of keys to grab from our '
+                 ' template to search for commands'
+        )
+
+
+    def run(self, build_file):
+        """
+        Based on the command, search our builf_file templates for a
+        viable COMMAND_LIST based on the instruction set
+        """
+        from build.parse import BuildCommandParser
+
+        template_data = self.data.command.split('.')
+        if template_data == ['']:
+            raise RuntimeError('Missing template name!')
+
+        template_name = template_data.pop(0)
+        template = build_file.included_templates.get(template_name)
+        if template is None:
+            raise RuntimeError('Template: {} not inherited!'.format(template_name))
+
+        current_location = None
+        for section in template_data:
+            if current_location is None:
+                current_location = template[section]
+            else:
+                current_location = current_location[section]
+
+        if current_location is None:
+            raise RuntimeError('Super commands not found for: {}'.format(self.data.command))
+
+        parser = BuildCommandParser(
+            current_location,
+            build_file,
+            build_file.additional
+        )
+        parser.exec_()

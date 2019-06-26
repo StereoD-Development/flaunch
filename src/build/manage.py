@@ -61,6 +61,8 @@ class BuildManager(_AbstractManager):
 
         os.chdir(self.build_dir)
 
+        self._setup_environment()
+
         self._prerequisite_check()
 
         self._pre_build_commands()
@@ -140,6 +142,17 @@ class BuildManager(_AbstractManager):
         pass # Overload per build manager
 
     # -- Private Methods
+
+    def _setup_environment(self):
+        """
+        Update our locale environment with whatever values have been supplied
+        with our build section
+        """
+        env = self.build_file['build']['env'] or {}
+
+        for key, value in utils._iter(env):
+            os.environ.update({key: self.build_file.expand(value)})
+
 
     def _prerequisite_check(self):
         """

@@ -174,6 +174,7 @@ class BuildCommandParser(object):
 
         expanded = []
         for arg in arguments:
-            expanded.append(self._build_file.expand(arg))
+            expanded.extend(self._build_file.expand(arg, rtype=list))
 
+        print (expanded)
         return cmd(*expanded)

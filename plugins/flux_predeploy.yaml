@@ -1,0 +1,57 @@
+#
+# flux pre deploy utility template
+#
+
+props:
+
+  # -- "Private" members
+
+  _platform_server:
+    windows: //isilon2
+    unix: /mnt/isilon2
+
+  _predeploy_folder: "{_platform_server}/s3d/resources/sw/temp/flux_predeploy/{package}/{platform}"
+
+  _compiled_files: "{_predeploy_folder}/{version}"
+
+  # -- Overloaded as needed
+
+  # The local install path that should contain a "ready for action"
+  # install of our files.
+  install_path:
+    windows: C:/VFXLIBS/{package}
+    unix: /opt/{package}
+
+  # Location of our thirdparty libraries
+  vfxlibs_install:
+    windows: C:/VFXLIBS
+    unix: /home/builder/builds/thirdparty
+
+#
+# Function for moving production ready files to the predeploy location
+# for next steps
+#
+func__install_path_to_predeploy(predeploy_version):
+  - ":COPY --make-dirs {install_path}/* {_predeploy_folder}/{predeploy_version}/"
+
+
+build:
+
+  post_build:
+    - ["--predeploy", ":FUNC install_path_to_predeploy({predeploy})"]
+
+
+deploy:
+
+  #
+  # By default, we fire off the master branch
+  #
+  branch: master
+
+  commands:
+    - ":CD {_compiled_files}"
+    - ":SET {package}.{version}.zip package_zip"
+    - ":ZIP ../{package_zip} -f ./" # Goes into the platform dir
+    - ":SET --resolve-path ../{package_zip} {deployable}"
+    - ":CD --pop"
+    - ":DEPLOY {deployable}"
