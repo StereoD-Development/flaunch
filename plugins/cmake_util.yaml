@@ -1,0 +1,25 @@
+#
+# Helpful utilities for cmake projects
+#
+
+props:
+
+  # -- Qt related items
+
+  cmake_qt_version: "5.12.3"
+
+  cmake_qt_prefix_path:
+    windows: "C:/Qt/Qt.12.3/mscv2015/lib/cmake/"
+    unix: /opt/Qt/5.12.3/lib/cmake/
+
+  # -- cmake build fun - best to use environment variables to augment
+
+  cmake_build_config: Release
+  cmake_target: Install
+
+
+build:
+
+  # Pretty straight forward
+  local_required:
+    - cmake

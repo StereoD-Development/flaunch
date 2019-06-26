@@ -32,6 +32,8 @@ class BuildFile(_AbstractFLaunchData):
             raise FLaunchDataError(str(e))
 
         _AbstractFLaunchData.__init__(self, package, path, data)
+
+        self._templates = {}
         self._load()
 
         self._build_manager = manager
@@ -58,17 +60,15 @@ class BuildFile(_AbstractFLaunchData):
 
 
     @property
-    def install_path(self):
-        if self._build_manager:
-            return self._build_manager.install_path
-        return ''
-
-
-    @property
     def source_dir(self):
         if self._build_manager:
             return self._build_manager.source_dir
         return ''
+
+
+    @property
+    def included_templates(self):
+        return self._templates
 
 
     def add_attribute(self, key, value):
@@ -153,7 +153,7 @@ class BuildFile(_AbstractFLaunchData):
 
         #
         # Start with any plugins. Our local build file will overload anything in
-        # said plugin but it's good to have
+        # said plugin but at least we don't have to duplicate functions
         #
         if self['include']:
             if not isinstance(self['include'], (list, tuple)):
@@ -167,8 +167,10 @@ class BuildFile(_AbstractFLaunchData):
                     logging.error("Invalid plugin: {}".format(plugin_filepath))
                     return
 
-                with open(plugin_filepath) as f:
-                    plugin_data = yaml.safe_load(f)
-                    self._data = PlatformDict(
-                        dict(utils.merge_dicts(plugin_data, self._data.to_dict()))
-                    )
+                # FIXME: Need to check for cyclic dependencies
+                plugin_bf = BuildFile(self.package, plugin_filepath, manager=self._build_manager)
+                self._templates[plugin] = plugin_bf
+
+                self._data = PlatformDict(
+                    dict(utils.merge_dicts(plugin_bf._data.to_dict(), self._data.to_dict()))
+                )

@@ -1,94 +1,64 @@
 #
-# This is just test bogus. Not a real production build file
+# Helios NLE build.yaml
 #
 
-name: helios
+name: Helios
 
-repository:
-  http://git/pipeline/FluxImageEngine
+repositories:
+  - https://github.com/StereoD-Development/Helios
+  - http://git/pipeline/Helios
 
-source_dir:
-  linux: /home/builder/builds/helios
-  windows: C:/code/helios
+include:
+  - sdpm_package
+  - cmake_util
+  - flux_predeploy
 
 # -- Global properties
+
 props:
-  # -- Server Options
-  platform_server:
-    linux: /mnt/isilon2
-    windows: //isilon2
-  platform_arch:
-    linux: x86_64-Linux
-    windows: AMD64-Windows
 
+  # Cmake args are never fun - might be worth breaking this down with the build:type
   cmake_args:
-    linux: -DVFXLIBS_INSTALL=/home/builder/builds/thirdparty -DCMAKE_PREFIX_PATH=/opt/Qt/5.12.3/lib/cmake/ -DCMAKE_INSTALL_PREFIX={install_dir}
-    windows: -G "Visual Studio 2015 Win64" (or something like that)
 
-  # # -- Where to put the damn thing
-  # install_dir:
-  #   /opt/Helios
+    linux: '-DVFXLIBS_INSTALL="{vfxlibs_install}" -DQT_VERSION_STRING="{cmake_qt_version}" -DCMAKE_PREFIX_PATH="{cmake_qt_prefix_path}" -DCMAKE_INSTALL_PREFIX="{install_path}" -Dpybind11_DIR="{vfxlibs_install}/pybind11/share/cmake/pybind11"'
 
-  # -- SDPM requirements
-  sdpm_archive:
-    linux: sdpm.tar.gz
-    windows: sdpm.zip
-  sdpm_pack:
-    linux: tar -cvzf ../{sdpm_archive}
-    window: 7z a -r ../{sdpm_archive} -w ./*
-  sdpm_rc_contents: |
-    import os
-    import shutil
-    import subprocess
-    import zipfile
-    import platform
+    windows: '-G "Visual Studio 2015 Win64" -DVFXLIBS_INSTALL="{vfxlibs_install}" -DQT_VERSION_STRING="{cmake_qt_version}" -DCMAKE_PREFIX_PATH="{cmake_qt_prefix_path}" -DCMAKE_INSTALL_PREFIX="{install_path}" -Dpybind11_DIR="{vfxlibs_install}/pybind11/share/cmake/pybind11"'
 
-    class SdpmRc(SdpmRcBase):
-      """ SDPM Helios Wrapper """
-      def pathEnv(self):
-        return { "PATH": [os.path.join(self._path, "bin")]}
-
-      def launch(self, *args):
-        largs = list(args)
-        return subprocess.call(['FluxImageEngine'], shell=platform.system() == 'Windows')
-  sdpm_temp_dir:
-    /tmp/helios_sdpm_build
+  #
+  # This command changes based on the visual studio version / update - need some way to determine this
+  #
+  win_setup_command: "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/vcvarsall.bat" amd64
 
 # -- Build Management
+
 build:
-  type: cmake
+  type: basic
 
   env:
     linux:
+      # -- We have these set for using a proper version of gcc
       - CC: /opt/rh/devtoolset-7/root/usr/bin/gcc
       - CXX: /opt/rh/devtoolset-7/root/usr/bin/g++
 
   pre_build:
     windows:
-      - C:/Program Files/.../vsarc64.bat amd64 (or something like that)
+      - "{win_setup_command...}"
 
   commands:
-    linux:
-      - cmake {cmake_args} {source_dir}
-      - gmake -j16 install
+    - cmake {cmake_args...} {source_dir}
+    - windows:
+        - cmake --build {source_dir} --config {cmake_build_config} --target {cmake_target} -j 16
+      linux:
+        - gmake -j16 install # ?? Can this be done with the command above?
 
-  # -- Additional commands for sdpm wrapping
-  post_build:
-    - mkdir {sdpm_temp_dir}
-    - :COPY {install_dir}/* {sdpm_temp_dir}
-    - cd {sdpm_temp_dir}
-    - :WRITE {sdpm_rc_contents} sdpm.rc
-    - "{sdpm_pack}"
-    - :MOVE ../{sdpm_archive} .
-    - cp -a {sdpm_temp_dir} {SDPM_BUILD_LOCATION}/dev/dist/x86_64-Linux
-    - cd {install_dir}
-    - rm -rf {sdpm_temp_dir}
+    #
+    # Make sure that the additional files are also in place
+    #
+    # post_build:
+    #   - ['--full',
+    #       {
+    #         windows: ":ZIP -x {development_utils}/python_3.7_embeded.zip",
+    #         unix: []
+    #       }
+    #     ]
 
-# -- Deployment Management
-deploy:
-  endpoints:
-    - fluxmad@10.3.14.114:/var/www/fluxrepo/repo/flux_packages/Helios/{platform}
-
-
-  post_commands:
-    - :COPY {platform_server}/resources/sw/packages/helios/

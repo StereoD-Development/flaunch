@@ -5,24 +5,11 @@ name: flaunch
 include:
   - sdpm_package
 
-repositories:
-  - https://github.com/StereoD-Development/flaunch
-  - http://git/flux/flaunch
-
-#
-# flaunch Packages we require to run our build
-# processes
-#
-requires: null
 
 # -- Global Properties
 props: null
 
 # -- Package Management
-#
-# We package these file directly, as in there
-# is no intermediate step
-#
 build:
   type: basic
 
@@ -52,24 +39,6 @@ build:
     env:
       PYTHONPATH: ["{path}"]
 
-# -- The Deployment Proceedure
-#
-# This changes significantly between setups.
-#
-deploy:
-
-  branch: master
-
-  #
-  # In the event we have a compiled application, we may have the
-  # built files installed into a separate location
-  #
-  compiled_files: "{flux_package_predeploy_folder}/flaunch/{deploy_version}"
-
-  # commands:
-  #   -
-  #   - ":DEPLOY" # This _must_ be the last command if you want the deployment to go out around the world
-
 
 #
 # Section where we can build arbitrary command sequences for
@@ -79,9 +48,6 @@ raw:
 
   # run with: fbuilc raw flaunch custom_print_example
   custom_print_example:
-
-    help:
-      "An example of a raw command"
-
+    help: "An example of a raw command"
     commands:
-        - ":PRINT Example command that does some work with {package} in {source_dir}"
+      - ":PRINT Example command that does some work with {package} in {source_dir}"

@@ -54,11 +54,6 @@ class _AbstractManager(object):
 
 
     @property
-    def install_path(self):
-        raise NotImplementedError('FUTURE')
-
-
-    @property
     def package(self):
         return self._app
 

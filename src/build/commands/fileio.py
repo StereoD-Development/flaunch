@@ -274,4 +274,3 @@ class ZipCommand(_BuildCommand):
             mode='a' if self.data.append else 'w',
             ignore=self.data.exclude or []
         )
-

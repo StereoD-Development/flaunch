@@ -8,6 +8,7 @@ import re
 import os
 import sys
 import copy
+import shlex
 import logging
 from contextlib import contextmanager
 
@@ -105,7 +106,7 @@ class _AbstractFLaunchData(object):
         return PlatformDict()
 
 
-    def expand(self, value, env=None, key=None, found=None):
+    def expand(self, value, env=None, key=None, found=None, rtype=str):
         """
         Resolve a value as much as needed using the environment provided. The
         environment isn't is the os.environ but a mapping to any number of attributes
@@ -123,6 +124,8 @@ class _AbstractFLaunchData(object):
             env.update(os.environ)
 
         should_append = False
+        breakout = False
+
         if isinstance(value, list):
             """
             We attempt to build the strings one by one
@@ -142,6 +145,13 @@ class _AbstractFLaunchData(object):
 
             for needs_resolve in found_to_resolve:
                 variable = needs_resolve[1:-1]
+
+                if variable.endswith('...'):
+                    if not rtype is list:
+                        logging.error('... syntax only allowed for parsed commands.')
+                        sys.exit(1) # ??
+                    breakout = True
+                    variable = variable[:-3]
 
                 if ':' in variable:
                     #
@@ -173,11 +183,13 @@ class _AbstractFLaunchData(object):
                     # For things like path, platform, etc.
                     value = value.replace(needs_resolve, getattr(self, variable))
 
+                elif variable.upper() in env:
+                    # We check on the uppercase first to make sure environment
+                    # variables get first pick, as opposed to lowercase props:
+                    value = value.replace(needs_resolve, env[variable.upper()])
+
                 elif variable in env:
                     value = value.replace(needs_resolve, env[variable])
-
-                elif variable.upper() in env:
-                    value = value.replace(needs_resolve, env[variable.upper()])
 
         if found is None:
             found = set()
@@ -232,5 +244,11 @@ class _AbstractFLaunchData(object):
 
             with log.log_indent():
                 logging.debug('Set: {}={}'.format(key.upper(), env[key.upper()]))
+
+        if breakout:
+            return shlex.split(value)
+
+        if rtype is list:
+            return [value]
 
         return value
