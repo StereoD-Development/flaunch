@@ -236,6 +236,10 @@ def main():
     def _e(m): pass # -- We handle the errors ourselves
     parser.error = _e
 
+    if len(sys.argv) < 2:
+        parser.print_help()
+        return 1
+
     try:
         args = parser.parse_args()
     except:
@@ -249,6 +253,10 @@ def main():
 
         parser.error = original_error
         args = parser.parse_args(['launch'] + sys.argv[1:])
+
+    if not vars(args):
+        print ("Invalid command! (-h for help)")
+        return 1
 
     log.start(args.verbose, args.log)
     logging.debug("Starting Command...")

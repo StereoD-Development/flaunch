@@ -18,7 +18,7 @@ class BuildFile(_AbstractFLaunchData):
     A build file describes the processes required for constructing and
     deploying packages with flaunchdev
     """
-    def __init__(self, package, path, manager=None):
+    def __init__(self, package, path, manager=None, name=None):
         try:
             with open(path) as f:
                 d = yaml.safe_load(f.read())
@@ -33,10 +33,11 @@ class BuildFile(_AbstractFLaunchData):
 
         _AbstractFLaunchData.__init__(self, package, path, data)
 
+        self._name = name
         self._templates = {}
+        self._build_manager = manager
         self._load()
 
-        self._build_manager = manager
 
     def set_manager(self, manager):
         """
@@ -44,6 +45,7 @@ class BuildFile(_AbstractFLaunchData):
         :param manager: The BuildManager that owns this item
         """
         self._build_manager = manager
+
 
     @property
     def additional(self):
@@ -71,13 +73,15 @@ class BuildFile(_AbstractFLaunchData):
         return self._templates
 
 
-    def add_attribute(self, key, value):
+    def add_attribute(self, key, value, global_=False):
         """
         Add an attribute to our properties
         """
         if self['props'] is None:
             self._data.update({'props' : {}})
         self._data['props'].update({key : value})
+        if global_:
+            self.add_global_attr(key, value)
 
 
     def attributes(self):
@@ -145,6 +149,17 @@ class BuildFile(_AbstractFLaunchData):
         return commands, supplied, arguments
 
 
+    def get_function_names(self):
+        """
+        :return: list[str] of all known functions for this BuildFile
+        """
+        functions = []
+        for key, value in utils._iter(self._data):
+            if key.startswith('func__'):
+                functions.append(key[:key.index('(')].replace('func__', ''))
+        return functions
+
+
     def _load(self):
         """
         The BuildFile manages some additional features. See docs/plugins.md for
@@ -155,22 +170,28 @@ class BuildFile(_AbstractFLaunchData):
         # Start with any plugins. Our local build file will overload anything in
         # said plugin but at least we don't have to duplicate functions
         #
-        if self['include']:
-            if not isinstance(self['include'], (list, tuple)):
-                raise TypeError('build.yaml -> include: must be a list of plugins')
+        include = self['include']
+        if not include:
+            include = []
 
-            for plugin in self['include']:
-                plugin_filepath = utils.path_ancestor(os.path.abspath(__file__), 3)
-                plugin_filepath = os.path.join(plugin_filepath, 'plugins', plugin + '.yaml')
+        if not isinstance(include, (list, tuple)):
+            raise TypeError('build.yaml -> include: must be a list of plugins')
 
-                if not os.path.isfile(plugin_filepath):
-                    logging.error("Invalid plugin: {}".format(plugin_filepath))
-                    return
+        if self._name != 'global':
+            include.insert(0, 'global')
 
-                # FIXME: Need to check for cyclic dependencies
-                plugin_bf = BuildFile(self.package, plugin_filepath, manager=self._build_manager)
-                self._templates[plugin] = plugin_bf
+        for plugin in include:
+            plugin_filepath = utils.path_ancestor(os.path.abspath(__file__), 3)
+            plugin_filepath = os.path.join(plugin_filepath, 'plugins', plugin + '.yaml')
 
-                self._data = PlatformDict(
-                    dict(utils.merge_dicts(plugin_bf._data.to_dict(), self._data.to_dict()))
-                )
+            if not os.path.isfile(plugin_filepath):
+                logging.error("Invalid plugin: {}".format(plugin_filepath))
+                return
+
+            # FIXME: Need to check for cyclic dependencies
+            plugin_bf = BuildFile(self.package, plugin_filepath, manager=self._build_manager, name=plugin)
+            self._templates[plugin] = plugin_bf
+
+            self._data = PlatformDict(
+                dict(utils.merge_dicts(plugin_bf._data.to_dict(), self._data.to_dict()))
+            )

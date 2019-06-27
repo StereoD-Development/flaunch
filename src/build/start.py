@@ -13,6 +13,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from build import manage
 from build import command
 from build import compose
+from build import deploy
 from build import raw
 from common import utils
 from common import log
@@ -29,6 +30,14 @@ def _build(args):
     :param args: The args namespace object our parser returns
     :return: None
     """
+    #
+    # Before we build - we have to check if the user is asking for a particular
+    # branch or tag. If they are, we need to make sure we're on that before
+    # peering into the build.yaml in the event it's different than the current
+    # branch
+    #
+    # TODO
+
     manager = manage.BuildManager.get_manager(args.package, args)
     manager.run_build()
     logging.info('Build Complete')
@@ -93,6 +102,11 @@ def _raw(args):
 
             print ("")
     else:
+        if args.command_name is None:
+            print ("Please provide a command to run! (use \"fbuild {}\" for available commands)".format(
+                ' '.join(sys.argv[1:] + ['--list-commands'])
+            ))
+            sys.exit(1)
         manager.run_raw_commands()
 
 
@@ -116,7 +130,7 @@ def build_parser():
     subparsers = parser.add_subparsers(help='Commands that can be run')
 
     # -- Build Management
-    builder = subparsers.add_parser('build', help='Build toolkit')
+    builder = subparsers.add_parser('build', description='Build toolkit')
     _fill_parser_with_defaults(builder)
     builder.add_argument('package', help='The package we\re building')
     builder.add_argument('-c', '--custom', nargs=2, metavar=('YAML', 'SOURCE'), help='Custom yaml file and source directory location')
@@ -129,18 +143,22 @@ def build_parser():
     builder.set_defaults(func=_build)
 
     # -- Deploy Management
-    deployer = subparsers.add_parser('deploy', help='Deployment toolkit')
+    deployer = subparsers.add_parser('deploy', description='Deployment toolkit')
     _fill_parser_with_defaults(deployer)
     deployer.add_argument('package', help='The package we\'re deploying')
+    deployer.add_argument('version', help='The version that we\'re deploying')
+    deployer.add_argument('--release', action='store_true', help='Deploy a release version')
+    deployer.add_argument('--beta', action='store_true', help='Deploy a beta version')
+    deployer.add_argument('-c', '--custom', nargs=2, metavar=('YAML', 'SOURCE'), help='Custom yaml file and source directory location')
     deployer.set_defaults(func=_deploy)
 
-    helper = subparsers.add_parser('commands', help='Internal fbuild command utils')
+    helper = subparsers.add_parser('commands', description='Internal fbuild command utils')
     _fill_parser_with_defaults(helper)
     helper.add_argument('-d', '--docs', action='store_true', help='Print all known commands and their arguments')
     helper.set_defaults(func=_commands)
 
     # -- Raw Command Toolkit
-    raw_commands = subparsers.add_parser('raw', help='Run loose structured commands from our build.yaml files')
+    raw_commands = subparsers.add_parser('raw', description='Run loose structured commands from our build.yaml files')
     _fill_parser_with_defaults(raw_commands)
     raw_commands.add_argument('package', help='The package that we\'re running commands through')
     raw_commands.add_argument('command_name', nargs='?', help='The command list to execute (key underneath the "raw" section of the build.yaml)')
@@ -149,7 +167,7 @@ def build_parser():
     raw_commands.set_defaults(func=_raw)
 
     # -- Launcher composer
-    composer = subparsers.add_parser('compose', help='Create a custom flaunch command')
+    composer = subparsers.add_parser('compose', description='Create a custom flaunch command')
     _fill_parser_with_defaults(composer)
     composer.add_argument('name', help='The "launcher" name')
     composer.add_argument('version', help='The version that is assigned to this "launcher"')
@@ -176,6 +194,10 @@ def main():
     def _e(m): pass # -- We handle the errors ourselves
     parser.error = _e
 
+    if len(sys.argv) < 2:
+        parser.print_help()
+        return 1
+
     try:
         args, addon = parser.parse_known_args()
     except Exception as e:
@@ -190,6 +212,10 @@ def main():
             return 1
 
         args, addon = parser.parse_known_args(['build'] + sys.argv[1:])
+
+    if not vars(args):
+        print ("Invalid command! (-h for help)")
+        return 1
 
     if args.index:
         os.environ["FLAUNCH_CUSTOM_INDEX"] = args.index

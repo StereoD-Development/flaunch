@@ -8,6 +8,7 @@ import os
 import sys
 import logging
 import traceback
+import subprocess
 
 from common.platformdict import PlatformDict
 from common.abstract import _AbstractFLaunchData, FLaunchDataError
@@ -21,9 +22,12 @@ from common import constants
 
 class _AbstractManager(object):
 
+    type_ = ''
+
     def __init__(self, app, arguments, build_file, source_dir=None):
         self._app         = app
         # self._is_local    = arguments.local
+        self._arguments   = arguments
         self._no_clean    = arguments.no_clean if hasattr(arguments, 'no_clean') else False
         self._additional  = arguments.additional_arguments
         self._build_file  = build_file
@@ -68,8 +72,32 @@ class _AbstractManager(object):
         return self._additional
 
 
+    @property
+    def arguments(self):
+        return self._arguments
+    
+
     @classmethod
-    def _yaml_file_from_package(cls, package):
+    def get_manager(cls, package, arguments):
+        """
+        Grab the manager based on the build.yaml file
+        """
+        yaml_file = arguments.custom or cls.yaml_file_from_package(package)
+        source_dir = None
+
+        if isinstance(yaml_file, list):
+            yaml_file, source_dir = yaml_file
+
+        if not os.path.isfile(yaml_file):
+            logging.critical('Invalid build yaml: {}'.format(yaml_file))
+            sys.exit(1)
+
+        build_data = BuildFile(package, yaml_file)
+        return cls(package, arguments, build_data, source_dir=source_dir)
+
+
+    @classmethod
+    def yaml_file_from_package(cls, package):
         """
         Based on the environment, grab the package that is most likely
         to be used for the 
@@ -81,6 +109,68 @@ class _AbstractManager(object):
             package,
             'build.yaml'
         )
+
+
+    def prerequisite_check(self):
+        """
+        In the event our action requires select software to be available
+        from it's root environment, we call that here.
+
+        Perhaps in the future we could also include "modules" for finding
+        basic tools and items.
+        """
+        prereq = self.build_file[self.type_]['local_required']
+        if not prereq:
+            prereq = ['git']
+        else:
+            logging.debug('Searching for prerequisites...')
+
+        if not isinstance(prereq, (list, tuple)):
+            logging.warning('build.yaml {} -> local_required must be a list'.format(self.type_))
+            return
+
+        command = PlatformDict.simple({
+            'windows' : 'where',
+            'unix' : 'which'
+        })
+
+        def _clean_path(p):
+            d = p.decode('utf-8').replace("\r\n", "\n")
+            d = d.split("\n")[0].replace("\\", "/")
+            return d
+
+        with log.log_indent():
+            for requirement in prereq:
+                proc = subprocess.Popen(
+                    [command, requirement],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+                information = proc.communicate()[0]
+                if proc.returncode != 0:
+                    logging.critical(
+                        'Could not find prerequisite: {}'.format(requirement)
+                    )
+                    sys.exit(1)
+                else:
+                    if requirement == 'git':
+                        continue # quiet, this is always needed
+
+                    logging.debug('{} found at: "{}"'.format(
+                        requirement,
+                        _clean_path(information)
+                    ))
+
+
+    def setup_environment(self):
+        """
+        Update our locale environment with whatever values have been supplied
+        with our build section
+        """
+        env = self.build_file[self.type_]['env'] or {}
+
+        for key, value in utils._iter(env):
+            os.environ.update({key: self.build_file.expand(value)})
 
 
     def build_commands(self, condition, build_data, type_):
@@ -96,7 +186,9 @@ class _AbstractManager(object):
 
             ok = condition is None  # False if conditions required
             if condition:
-                logging.debug('Checking {} Build Conditions...'.format(type_))
+                logging.debug('Checking {} {} Conditions...'.format(
+                    type_, self.type_.capitalize()
+                ))
 
                 if not isinstance(condition, (list, tuple)):
                     condition = (condition,)
@@ -122,3 +214,5 @@ class _AbstractManager(object):
                     with log.log_indent():
                         list(map(logging.critical, traceback.format_exc().split('\n')))
                     sys.exit(1)
+        else:
+            logging.debug('No {} Commands'.format(type_))

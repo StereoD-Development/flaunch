@@ -6,11 +6,12 @@ props:
 
   # -- Qt related items
 
-  cmake_qt_version: "5.12.3"
+  cmake_qt_version: "5.12.3"  # Verison that we're using for Qt
+  win_msvc: mscv2015          # Visual Studio Version
 
   cmake_qt_prefix_path:
-    windows: "C:/Qt/Qt.12.3/mscv2015/lib/cmake/"
-    unix: /opt/Qt/5.12.3/lib/cmake/
+    windows: "C:/Qt/{cmake_qt_version}/{win_msvc}/lib/cmake/"
+    unix: /opt/Qt/{cmake_qt_version}/lib/cmake/
 
   # -- cmake build fun - best to use environment variables to augment
 

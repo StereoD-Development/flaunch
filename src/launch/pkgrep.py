@@ -121,6 +121,25 @@ def _get_package(package, version=None, info=None, builds=[], force=False):
             p = os.path.join(build_location, package, 'launch.json')
             if os.path.exists(p):
                 launch_json = p
+                break
+
+            # Check for a redirect.json with development builds that
+            # have in install path
+            redirect = os.path.join(build_location, package, 'redirect.json')
+            if os.path.exists(redirect):
+                with open(redirect, 'r') as f:
+                    try:
+                        redirect_data = json.load(f)
+                    except:
+                        logging.warning('Development redirect.json found '
+                                        'but no object could be decoded')
+                        continue
+
+                    redirect_dir = redirect_data.get('redirect', '__')
+                    p = os.path.join(redirect_dir, 'launch.json')
+                    if os.path.exists(p):
+                        launch_json = p
+                        break
 
         if is_dev and not launch_json:
             #

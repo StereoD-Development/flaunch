@@ -21,13 +21,14 @@ class FLaunchFormater(logging.Formatter):
     def format(self, record):
         s = super(FLaunchFormater, self).format(record)
         idx = s.index('!tabme!')
-        s = s.replace('!tabme!', ' ' * (32 - idx))
+        s = s.replace('!tabme!', ' ' * (31 - idx))
         return s
 
 DEFAULT_FORMAT = FLaunchFormater(
     fmt=MESSAGE_FORMAT.format(''),
     datefmt=DATETIME_FORMAT
 )
+
 
 def start(verbose, output_file=None):
     """
@@ -53,6 +54,7 @@ def start(verbose, output_file=None):
         logger.addHandler(FILE_HANDLER)
 
     DEFAULT_HANDLER.setFormatter(DEFAULT_FORMAT)
+
 
 @contextmanager
 def log_indent():

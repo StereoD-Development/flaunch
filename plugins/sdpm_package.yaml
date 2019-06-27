@@ -38,12 +38,14 @@ props:
 
 #
 # Alas, sdpm builds dev within source. No fun, but that's the
-# way the cookie crumbles.
+# way the cookie crumbles. (Techniacally this can be changed
+# with the SDPM_PATH but meh.)
 #
 func__sdpm_dev_build():
   - ":DEL {source_dir}/dev"
   - ":MKDIR -s {_sdpm_dev_build}"
-  - ":COPY -f {build_dir}/* {_sdpm_dev_build} -x launch.json"
+  - ":FUNC get_complete_files_path()"
+  - ":COPY -f {complete_files}/* {_sdpm_dev_build} -x launch.json"
   - ":WRITE {sdpm_rc_file} {_sdpm_dev_build}/sdpm.rc"
 
 
@@ -61,7 +63,8 @@ func__sdpm_deploy_simple(sdpm_version, sdpm_fix_number):
   - ":SET {_sdpm_deploy_location}/{sdpm_version}/{sdpm_fix_number}/{_sdpm_platform_arch} deployment_loc"
   - ":DEL {deployment_loc}"
   - ":MKDIR -s {deployment_loc}"
-  - ":CD {build_dir}" # Should already be there but just in case
+  - ":FUNC get_complete_files_path()"
+  - ":CD {complete_files}"
   - windows: ":ZIP ../{_sdpm_archive} -f ./"
     unix: tar -cvzf ../{_sdpm_archive} ./*
   - ":COPY -f {build_dir}/* {deployment_loc}"
@@ -75,9 +78,18 @@ func__sdpm_deploy_simple(sdpm_version, sdpm_fix_number):
 #
 func__sdpm_deploy_flaunch_package(package_path, sdpm_verison, sdpm_fix_number):
   - ":SET {_sdpm_deploy_location}/{sdpm_version}/{sdpm_fix_number}/{_sdpm_platform_arch} deployment_loc"
-  - ":COPY {package_path} {deployment_loc}/sdpm.zip"
+  - ":COPY --make-dirs {package_path} {deployment_loc}/sdpm.zip"
   - ":WRITE {sdpm_rc_file} {deployment_loc}/sdpm.rc"
 
+
+#
+# Old-school transfer command for sdpm packages from toronto.
+#
+func__sdpm_transfer_to_facilities(sdpm_full_version):
+  - ':SET "verbose localize env prepend python/2.7.2 localize launch TransferTools -n signiant basic" sdpm_transfer_command'
+  - "sdpm {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{package}/{sdpm_full_version} tor bur"
+  - "sdpm {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{package}/{sdpm_full_version} tor pun"
+ 
 
 build:
 
@@ -112,8 +124,21 @@ raw:
       be deployed.
 
     arguments:
-      - [sdpm_version,    Major.Minor.Subminor version to deploy to, '[0-9]+\.[0-9]+\.[0-9]+']
+      - [sdpm_version, Major.Minor.Subminor version to deploy to, '[0-9]+\.[0-9]+\.[0-9]+']
       - [sdpm_fix_number, "#### fix number", '[0-9]{4}']
 
     commands:
       - ":FUNC sdpm_deploy_simple({sdpm_version}, {sdpm_fix_number})"
+
+
+  sdpm_transfer:
+
+    help: |
+      Transfer a deployed package to other sdpm facilities (at the
+      moment  this is locked to Toronto only)
+
+    arguments:
+      - [sdpm_full_version, Major.Minor.Subminor/#### version to transfer, '[0-9]+\.[0-9]+\.[0-9]+/[0-9]{4}']
+
+    commands:
+      - ":FUNC sdpm_transfer_to_facilities({sdpm_full_version})"

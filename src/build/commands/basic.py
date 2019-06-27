@@ -13,6 +13,9 @@ import shutil
 import fnmatch
 import logging
 import argparse
+import tempfile
+import platform
+from contextlib import contextmanager
 from collections import deque
 
 from build.command import _BuildCommand
@@ -85,9 +88,14 @@ class CopyCommand(_BuildCommand):
 
         for d in data:
             base = d.replace('\\', '/').replace(root, '')
-            if base.startswith('/'):
-                base = base[1:]
-            dest = self.data.destination + '/' + base
+
+            # For globbing, we have to make sure the destination is up to date
+            if root:
+                if base.startswith('/'):
+                    base = base[1:]
+                dest = self.data.destination + '/' + base
+            else:
+                dest = self.data.destination
 
             ok = True
             for pattern in ignore_patterns:
@@ -124,6 +132,7 @@ class MoveCommand(_BuildCommand):
         """
         Moving files takes at least a source and a destination
         """
+        parser.add_argument('-x', '--exclude', nargs='+', help="file patterns to ignore")
         parser.add_argument('-m', '--make-dirs', action='store_true', help='Create the destination directory')
         parser.add_argument('-f', '--force', action='store_true', help='Overwrite any files that already exist')
         parser.add_argument('source', help="The source file(s)")
@@ -152,7 +161,7 @@ class MoveCommand(_BuildCommand):
                 .format(os.path.dirname(self.data.destination))
             )
 
-        if not self.data.force and os.path.exists(self.data.destination):
+        if not self.data.force and os.path.isfile(self.data.destination):
             raise RuntimeError(
                 'Destination Already Exists: {} (Consider using the --force flag)' \
                 .format(self.data.destination)
@@ -160,9 +169,43 @@ class MoveCommand(_BuildCommand):
 
         logging.info('Moving: {} -> {}'.format(self.data.source, self.data.destination))
 
-        # FIXME: This needs an upgrade like COPY got for glob
-        for d in glob.glob(self.data.source):
-            shutil.move(d, self.data.destination)
+        data = glob.glob(self.data.source)
+
+        root = ''
+        if '*' in self.data.source:
+            root = self.data.source[:self.data.source.index('*')].replace('\\', '/')
+            if root.endswith('/'):
+                root = root[:-1]
+
+        if len(data) > 1 and not os.path.exists(self.data.destination):
+            os.makedirs(self.data.destination)
+
+        ignore_patterns = self.data.exclude or []
+        ignore_func = shutil.ignore_patterns(*ignore_patterns)
+
+        for d in data:
+            base = d.replace('\\', '/').replace(root, '')
+
+            # For globbing, we have to make sure the destination is up to date
+            if root:
+                if base.startswith('/'):
+                    base = base[1:]
+                dest = self.data.destination + '/' + base
+            else:
+                dest = self.data.destination
+
+            ok = True
+            for pattern in ignore_patterns:
+                if fnmatch.fnmatch(base, pattern):
+                    ok = False
+                    break
+            if not ok:
+                continue
+
+            if os.path.exists(dest) and self.data.force:
+                if os.path.isfile(dest):
+                    os.unlink(dest)
+            shutil.move(d, dest)
 
 
 class PrintCommand(_BuildCommand):
@@ -266,6 +309,7 @@ class CDCommand(_BuildCommand):
         if not self.data.pop:
             build_file._previous_directories.append(os.getcwd())
 
+        logging.info('Change Directory: -> {}'.format(change_to))
         os.chdir(change_to)
 
 
@@ -289,6 +333,12 @@ class SetCommand(_BuildCommand):
         )
 
         parser.add_argument(
+            '-g', '--global-var',
+            action='store_true',
+            help='Set this as a global variable regardless of scope'
+        )
+
+        parser.add_argument(
             'value',
             help='The value to pass into the property'
         )
@@ -305,4 +355,124 @@ class SetCommand(_BuildCommand):
         value = self.data.value
         if self.data.resolve_path:
             value = os.path.abspath(value)
-        build_file.add_attribute(self.data.property, value)
+        build_file.add_attribute(
+            self.data.property,
+            value,
+            global_=self.data.global_var
+        )
+
+
+class EnvCommand(_BuildCommand):
+    """
+    Use external script (e.g .bat, .sh) to augment the environment of this
+    process
+    """
+    alias = 'ENV'
+
+    def description(self):
+        return 'Source a file for to augment the active environment'
+
+
+    def populate_parser(self, parser):
+        """
+        """
+        parser.add_argument(
+            'script_command',
+            help='The script to execute'
+        )
+
+
+    @contextmanager
+    def _cd(self, new_directory, cleanup=lambda: True):
+        """
+        Quick context for working in our temp directory
+        """
+        previous = os.getcwd()
+        os.chdir(os.path.expanduser(new_directory))
+        try:
+            yield
+        finally:
+            os.chdir(previous)
+            cleanup()
+
+
+    @contextmanager
+    def temp_dir(self):
+        """
+        Quick temp directory that we move into to do our work
+        :return: The new temp directory (we've also cd'd into it) 
+        """
+        dirpath = tempfile.mkdtemp()
+        def _clean():
+            shutil.rmtree(dirpath)
+        with self._cd(dirpath, _clean):
+            yield dirpath
+
+
+    def run(self, build_file):
+        """
+        Execute the script, then read back the environment into our
+        active process
+        """
+        with self.temp_dir() as tempdir: # For easy cleanup
+
+            logging.info('Sourcing Environment: {}'.format(self.data.script_command))
+            env_txt_file = '_setup_environment.txt'
+
+            if platform.system() == 'Windows':
+                #
+                # Windows uses batch with the set command
+                #
+                env_file = '_setup_environment.bat'
+                with open(env_file, 'w') as env_bat:
+                    env_bat.write('@echo off\n')
+                    env_bat.write('call %s\n' % self.data.script_command)
+                    env_bat.write('set > %s\n' % env_txt_file)
+            else:
+                #
+                # Linux uses bash with the env command
+                #
+                env_file = '_setup_environment.sh'
+                with open(env_file, 'w') as env_sh:
+                    env_sh.write('source %s\n' % self.data.script_command)
+                    env_sh.write('env > %s\n' % env_txt_file)
+
+                # Make sure bash knows to run it
+                env_file = 'bash ./' + env_file
+
+            os.system(env_file)
+            with open(env_txt_file, 'r') as env_read:
+                lines = env_read.read().splitlines()
+
+            for line in lines:
+                var, value = line.split('=', 1)
+                os.environ[var] = value
+
+
+class FailCommand(_BuildCommand):
+    """
+    Every language needs a throw right?
+    """
+    alias = 'FAIL'
+
+    def description(self):
+        return 'Stop the command process by raising a specific message'
+
+
+    def populate_parser(self, parser):
+        """
+        The parser is very simple
+        """
+        parser.add_argument(
+            'text',
+            nargs='+',
+            help='The text that we want to go along with our build failure'
+        )
+
+
+    def run(self, build_file):
+        """
+        Runit!
+        """
+        text = ' '.join(self.data.text)
+        raise RuntimeError(text)

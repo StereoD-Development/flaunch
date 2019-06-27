@@ -94,6 +94,8 @@ class BasicBuilder(manage.BuildManager):
                         list(map(logging.critical, traceback.format_exc().split('\n')))
                     sys.exit(1)
 
+            build_root = build_path
+
         else:
             #
             # This is a generic build - just copy files

@@ -86,6 +86,8 @@ class _BuildCommand(object):
         :param build_file: BuildFile object that controls this whole process
         """
         result = utils.run_(self._arguments)
+        if result != 0:
+            raise RuntimeError("Failed to execute! See output for details")
 
     # -- Public Methods
 

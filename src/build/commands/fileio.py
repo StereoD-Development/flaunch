@@ -198,7 +198,7 @@ class ZipCommand(_BuildCommand):
     alias = 'ZIP'
 
     def description(self):
-        return 'Zip up files/directories - recursive by default'
+        return '(Un)Zip files/directories - recursive by default'
 
 
     def populate_parser(self, parser):
@@ -212,14 +212,25 @@ class ZipCommand(_BuildCommand):
         )
 
         parser.add_argument(
-            '-x', '--exclude',
+            '-x', '--extract',
+            action='store_true',
+            help='Extract the archive (use -o to declare output location)'
+        )
+
+        parser.add_argument(
+            '-o', '--output',
+            help='Directory to move files into. Directory must exist'
+        )
+
+        parser.add_argument(
+            '-e', '--exclude',
             help='File patterns to ignore (unix pattern matching ok)',
             action='append'
         )
 
         parser.add_argument(
             '-f', '--file',
-            help='File or directory to include (can be used multiple times)',
+            help='File or directory to include/unpack (can be used multiple times)',
             action='append'
         )
 
@@ -232,6 +243,12 @@ class ZipCommand(_BuildCommand):
             '-a', '--append',
             help='If the archive already exists, just append to it.',
             action='store_true'
+        )
+
+        parser.add_argument(
+            '-n', '--noisey',
+            action='store_true',
+            help='Log files being manipulated'
         )
 
 
@@ -251,26 +268,41 @@ class ZipCommand(_BuildCommand):
         """
         from common import compression
 
-        files = self.data.file
+        raw_files = self.data.file
 
-        # Make sure we have absolute paths
-        ready_files = list(map(os.path.abspath, files))
+        if self.data.extract:
+            compression.unzip_files(
+                archive=self.data.archive,
+                files=raw_files or [],
+                ignore=self.data.exclude or [],
+                output=self.data.output or os.getcwd(),
+                noisey=self.data.noisey
+            )
 
-        # With said paths, make sure we all have the same slash direction
-        ready_files = list(map(lambda x: x.replace('\\', '/'), ready_files))
+        else:
+            files = []
+            for file_info in raw_files:
+                files.extend(glob.glob(file_info))
 
-        root = self.data.root
-        if root is None:
-            root = self._common_prefix(ready_files)
+            # Make sure we have absolute paths
+            ready_files = list(map(os.path.abspath, files))
 
-        name = self.data.archive
-        if not name.endswith('.zip'):
-            name += '.zip'
+            # With said paths, make sure we all have the same slash direction
+            ready_files = list(map(lambda x: x.replace('\\', '/'), ready_files))
 
-        compression.zip_files(
-            name=name,
-            files=ready_files,
-            root=root,
-            mode='a' if self.data.append else 'w',
-            ignore=self.data.exclude or []
-        )
+            root = self.data.root
+            if root is None:
+                root = self._common_prefix(ready_files)
+
+            name = self.data.archive
+            if not name.endswith('.zip'):
+                name += '.zip'
+
+            compression.zip_files(
+                name=name,
+                files=ready_files,
+                root=root,
+                mode='a' if self.data.append else 'w',
+                ignore=self.data.exclude or [],
+                noisey=self.data.noisey
+            )
