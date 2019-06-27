@@ -14,6 +14,7 @@ import argparse
 
 # import imp
 
+from common import utils
 from types import ModuleType
 from build.command import _BuildCommand
 
@@ -97,6 +98,27 @@ class FuncCommand(_BuildCommand):
             nargs=argparse.REMAINDER
         )
 
+    def find_similar_function_name(self, raw_function, build_file):
+        """
+        Based on the current, known function names, try finding the closest
+        match to provide the user with some feedback
+        :param raw_function: The function name as it appears in our yaml
+        :return: None
+        """
+        diffs = []
+        function_name = raw_function[:raw_function.index('(')]
+
+        all_function_names = build_file.get_function_names()
+        for function in all_function_names:
+            diff = utils.levenshtein(function_name.lower(), function.lower())
+            diffs.append((diff, function))
+
+        diffs.sort(key=lambda x: x[0])
+
+        if diffs:
+            return (" Did you mean: {} ?".format(diffs[0][1]))
+        return ""
+
 
     def run(self, build_file):
         """
@@ -104,9 +126,16 @@ class FuncCommand(_BuildCommand):
         """
         from build.parse import BuildCommandParser
 
+        func = ''.join(self.data.func)
         commands, supplied_arguments, global_arguments = build_file.get_function_commands(
-            ''.join(self.data.func)
+            func
         )
+
+        if not commands:
+            raise RuntimeError("Function not found: {}.{}".format(
+                ''.join(self.data.func),
+                self.find_similar_function_name(func, build_file)
+            ))
 
         parser = BuildCommandParser(
             commands,

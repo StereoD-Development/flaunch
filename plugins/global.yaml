@@ -1,0 +1,90 @@
+#
+# global flaunch utility template
+#
+# All build.yaml files inherit this
+#
+
+props:
+
+  # -- "Private" members
+
+  _platform_server:
+    windows: //isilon2
+    unix: /mnt/isilon2
+
+  _predeploy_folder: "{_platform_server}/s3d/resources/sw/temp/flux_predeploy/{package}/{platform}"
+
+  # -- Overloaded as needed
+
+  #
+  # The install_path is important. For basic packages, they don't
+  # need an install location as their files are all in the build directory
+  # which spares us an extra copy which no one likes to do. When defined,
+  # the install_path augments the build procedure to handle the additional
+  # indirection
+  #
+  # install_path: ''
+
+  # Location of our thirdparty libraries
+  thirdparty_install:
+    windows: C:/VFXLIBS
+    unix: /home/builder/builds/thirdparty
+
+
+  redirect_json: |
+    { "redirect" : "{install_path}" }
+
+
+#
+# If an install path is set, then use it over the build location
+#
+func__get_complete_files_path():
+  - ":SET -g {build_dir} complete_files"
+  - clause: "prop_set('install_path')"
+    commands: ":SET -g {install_path} complete_files"
+
+
+#
+# Function for moving production ready files to the predeploy location
+# for next steps. This will do some simplistic validation.
+# :param predeploy_version: The version we're working with
+#
+func__install_path_to_predeploy(predeploy_version):
+  - ":SET {package}.{predeploy_version}.zip package_zip"
+  - [ "--force",
+        # True:
+        ":DEL {_predeploy_folder}/{predeploy_version}",
+        # False:
+        {
+          clause: 'file_exists("{_predeploy_folder}/{predeploy_version}/{package_zip}")',
+          commands: ':FAIL "Files for version: \"{predeploy_version}\" already exists! (use --force to override)"'
+        }
+    ]
+  - ":FUNC get_complete_files_path()"
+  - ":CD {complete_files}"
+  - ":ZIP {package_zip} -f {complete_files}/* -n"
+  - ":MOVE --make-dirs {package_zip} {_predeploy_folder}/{predeploy_version}/"
+  - ":CD --pop"
+
+
+build:
+
+  post_build:
+    #
+    # If we've defined an install path, we want to copy the launch.json to
+    # where it can be useful, leaving a redirect.json for development help
+    #
+    - ["install_path",
+        [
+          ":MOVE --force {build_dir}/launch.json {install_path}/",
+          ":WRITE {redirect_json} {build_dir}/redirect.json"
+        ]
+    ]
+
+
+deploy:
+
+  pre_deploy:
+    - ":FUNC install_path_to_predeploy({version})"
+
+

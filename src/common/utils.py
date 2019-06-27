@@ -119,7 +119,7 @@ def run_(command_and_args, custom_env = {}, verbose = False, build_file = None):
     logging.info("Running command: " + " ".join(full_command))
 
     if PY3:
-        return subprocess.run(full_command)
+        return subprocess.run(full_command).returncode
     else:
         return subprocess.check_call(full_command)
 

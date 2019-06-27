@@ -10,6 +10,8 @@ import sys
 import copy
 import shlex
 import logging
+import platform
+import collections
 from contextlib import contextmanager
 
 from .platformdict import PlatformDict
@@ -36,6 +38,7 @@ class _AbstractFLaunchData(object):
         self._package = package
         self._path = path.replace('\\', '/')
         self._data = data
+        self._original_data = collections.deque()
 
 
     def __repr__(self):
@@ -55,13 +58,24 @@ class _AbstractFLaunchData(object):
         :param properties: dict of property information we want to overload
         our current props with.
         """
-        self._original_data = self._data
+        self._original_data.append(self._data)
         self._data = copy.deepcopy(self._data) # Could use a delta-aware dict
         if not self._data['props']:
             self._data['props'] = {}
         self._data['props'].update(properties)
         yield
-        self._data = self._original_data
+        self._data = self._original_data.pop()
+
+
+    def add_global_attr(self, key, value):
+        """
+        We have an attribute to stick no matter that the scope is
+        :param key: The key that we're setting (str)
+        :param value: The value of said key
+        :return: None
+        """
+        for data in self._original_data:
+            data['props'][key] = value
 
 
     @property
@@ -207,18 +221,20 @@ class _AbstractFLaunchData(object):
                         logging.warning('Unknown property: {}'.format(sub_val))
                         unknown.add(sub_val)
                         continue
-
-                    logging.critical('Potential cyclic variable expansion detected!')
-                    with log.log_indent():
-                        logging.critical('Attempted to expand: "{}"'.format(val))
-                    sys.exit(1)
                 found.add(sub_val)
 
             for uk_val in unknown:
                 still_to_resolve.remove(uk_val)
 
             if still_to_resolve:
-                return self.expand(val, env, found=found)
+                new_val = self.expand(val, env, found=found)
+                if new_val == val:
+                    logging.critical('Potential cyclic variable expansion detected!')
+                    with log.log_indent():
+                        logging.critical('Attempted to expand: "{}"'.format(val))
+                    sys.exit(1)
+                return new_val
+
             return val
 
         if isinstance(value, list):

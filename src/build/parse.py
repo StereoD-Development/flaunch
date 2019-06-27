@@ -22,15 +22,23 @@ from .commands import *
 # FIXME: Need to lift these somewhere they can be auto documented and
 # expanded upon
 
-def env_check(env, value):
+def env_check(env, value, build_file):
     return (os.environ.get(env.upper(), None) is value)
 
-def env_set(env):
+def env_set(env, build_file):
     return (os.environ.get(env.upper(), None) is not None)
+
+def prop_set(prop, build_file):
+    return (build_file['props'][prop] is not None)
+
+def file_exists(file, build_file):
+    return os.path.exists(file)
 
 local_commands = {
     'env_check' : env_check,
-    'env_set' : env_set
+    'env_set' : env_set,
+    'prop_set' : prop_set,
+    'file_exists' : file_exists
 }
 
 # -------------------------------------------------------------------
@@ -92,19 +100,51 @@ class BuildCommandParser(object):
                 # In the event we have a list, this means we
                 # have conditional execution
                 #
-                condition, commands = command_info
+                negative = []
+                if len(command_info) > 2:
+                    condition, commands, negative = command_info
+                else:
+                    condition, commands = command_info
                 if not isinstance(condition, (list, tuple)):
                     condition = (condition,)
 
                 # http://book.pythontips.com/en/latest/for_-_else.html
                 for c in condition:
-                    if c not in self._additional:
-                        break;
+
+                    # NOT gate
+                    not_logic = False
+                    if c.startswith('!'):
+                        not_logic = True
+                        c = c[1:]
+
+                    if not c.startswith('--'):
+                        if c in self._build_file['props']:
+                            if not_logic:
+                                break # We have it but don't want it
+                        elif not not_logic:
+                            break # We don't have it and want it
+
+                    elif c in self._additional:
+                        if not_logic:
+                            break # We have it but don't want it
+
+                    elif not not_logic:
+                        break # We don't have it and want it
+
                 else:
                     # Ready to run!
                     if not isinstance(commands, (list, tuple)):
                         commands = [commands]
                     self._exec_internal(commands)
+                    continue
+
+                # If we've made it here, it means we broke out, therefore we
+                # should check if we have a negative command set
+                if negative:
+                    if isinstance(negative, (list, tuple)):
+                        self._exec_internal(negative)
+                    else:
+                        self._exec_internal([negative])
 
             elif isinstance(command_info, dict):
                 #
@@ -127,10 +167,22 @@ class BuildCommandParser(object):
                     #
                     if command_info_raw.get('clause'):
                         python_to_eval = self._build_file.expand(command_info_raw['clause'])
+                        logging.debug('Evaluating: {}'.format(python_to_eval))
+
+                        is_command = python_to_eval[:python_to_eval.index('(')] in local_commands
+                        if is_command and python_to_eval.endswith(')'):
+                            # All of the quick commands take the build file as the last arg
+                            python_to_eval = python_to_eval[:-1] + ', build_file)'
+
+
+                        local_commands['build_file'] = self._build_file
                         if not (eval(python_to_eval, local_commands)):
                             return # - Didn't work
 
-                    self._exec_internal(commands_from_dict)
+                    if isinstance(commands_from_dict, (list, tuple)):
+                        self._exec_internal(commands_from_dict)
+                    else:
+                        self._exec_internal([commands_from_dict])
                 elif isinstance(command_info, (list, tuple)):
                     # Just a platform reroute
                     self._exec_internal(command_info)
@@ -176,5 +228,4 @@ class BuildCommandParser(object):
         for arg in arguments:
             expanded.extend(self._build_file.expand(arg, rtype=list))
 
-        print (expanded)
         return cmd(*expanded)

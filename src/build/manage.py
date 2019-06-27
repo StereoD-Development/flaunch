@@ -1,5 +1,5 @@
 """
-Management tools for building/deploying things
+Management tools for building software with fbuild
 """
 from __future__ import absolute_import
 
@@ -36,6 +36,7 @@ class BuildManager(_AbstractManager):
     powerful tools.
     """
     registry = []
+    type_ = 'build'
 
     def __init__(self, app, arguments, build_file, source_dir=None):
         _AbstractManager.__init__(self, app, arguments, build_file, source_dir=source_dir)
@@ -61,9 +62,9 @@ class BuildManager(_AbstractManager):
 
         os.chdir(self.build_dir)
 
-        self._setup_environment()
+        self.setup_environment()
 
-        self._prerequisite_check()
+        self.prerequisite_check()
 
         self._pre_build_commands()
 
@@ -79,7 +80,7 @@ class BuildManager(_AbstractManager):
         """
         from build import managers
 
-        yaml_file = arguments.custom or cls._yaml_file_from_package(package)
+        yaml_file = arguments.custom or cls.yaml_file_from_package(package)
         source_dir = None
 
         if isinstance(yaml_file, list):
@@ -90,7 +91,7 @@ class BuildManager(_AbstractManager):
             sys.exit(1)
 
         build_data = BuildFile(package, yaml_file)
-        build_type = build_data['build']['type']
+        build_type = build_data['build']['type'] or 'basic'
 
         for _cls in BuildManager.registry:
             if hasattr(_cls, 'alias') and _cls.alias == build_type:
@@ -142,69 +143,6 @@ class BuildManager(_AbstractManager):
         pass # Overload per build manager
 
     # -- Private Methods
-
-    def _setup_environment(self):
-        """
-        Update our locale environment with whatever values have been supplied
-        with our build section
-        """
-        env = self.build_file['build']['env'] or {}
-
-        for key, value in utils._iter(env):
-            os.environ.update({key: self.build_file.expand(value)})
-
-
-    def _prerequisite_check(self):
-        """
-        In the event our action requires select software to be available
-        from it's root environment, we call that here.
-
-        Perhaps in the future we could also include "modules" for finding
-        basic tools and items.
-        """
-        prereq = self.build_file['build']['local_required']
-        if not prereq:
-            prereq = ['git']
-        else:
-            logging.debug('Searching for prerequisites...')
-
-        if not isinstance(prereq, (list, tuple)):
-            logging.warning('build.yaml build -> local_required must be a list')
-            return
-
-
-        command = PlatformDict.simple({
-            'windows' : 'where',
-            'unix' : 'which'
-        })
-
-        def _clean_path(p):
-            d = p.decode('utf-8').replace("\r\n", "\n")
-            d = d.split("\n")[0].replace("\\", "/")
-            return d
-
-        with log.log_indent():
-            for requirement in prereq:
-                proc = subprocess.Popen(
-                    [command, requirement],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
-                )
-                information = proc.communicate()[0]
-                if proc.returncode != 0:
-                    logging.critical(
-                        'Could not find prerequisite: {}'.format(requirement)
-                    )
-                    sys.exit(1)
-                else:
-                    if requirement == 'git':
-                        continue # quite, this is always needed
-
-                    logging.debug('{} found at: "{}"'.format(
-                        requirement,
-                        _clean_path(information)
-                    ))
-
 
     def _pre_build_commands(self):
         """

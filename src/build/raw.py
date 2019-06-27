@@ -17,6 +17,8 @@ class RawCommandManager(_AbstractManager):
     """
     Utility class for executing arbitrary commands help within a build.yaml file
     """
+    type_ = 'raw'
+
     def __init__(self, app, arguments, build_file, source_dir=None):
         _AbstractManager.__init__(self, app, arguments, build_file, source_dir=source_dir)
 
@@ -51,32 +53,13 @@ class RawCommandManager(_AbstractManager):
         return comms
 
 
-    @classmethod
-    def get_manager(cls, package, arguments):
-        """
-        While not as intense as the BuildManager.get_manager function, this
-        just does some of the initial validation and checkout for 
-        """
-        yaml_file = arguments.custom or cls._yaml_file_from_package(package)
-        source_dir = None
-
-        if isinstance(yaml_file, list):
-            yaml_file, source_dir = yaml_file
-
-        if not os.path.isfile(yaml_file):
-            logging.critical('Invalid build yaml: {}'.format(yaml_file))
-            sys.exit(1)
-
-        build_data = BuildFile(package, yaml_file)
-        return cls(package, arguments, build_data, source_dir=source_dir)
-
-
     def run_raw_commands(self):
         """
         Get the commands and fire away!
         """
         this_command = self.raw_commands()[self._command]
         required = this_command['arguments']
+        entering_parameters = {}
         if required:
 
             missing = []
@@ -93,16 +76,15 @@ class RawCommandManager(_AbstractManager):
                 ))
                 sys.exit(1) # ??
 
-        entering_parameters = {}
-        for req in required:
-            req_name = req[0]
-            idx = self.additional.index(utils.cli_name(req_name))
+            for req in required:
+                req_name = req[0]
+                idx = self.additional.index(utils.cli_name(req_name))
 
-            if idx + 2 > len(self.additional):
-                logging.critical('Missing value for {}!'.format(req_name))
-                sys.exit(1)
+                if idx + 2 > len(self.additional):
+                    logging.critical('Missing value for {}!'.format(req_name))
+                    sys.exit(1)
 
-            entering_parameters[req_name] = self.additional[idx + 1]
+                entering_parameters[req_name] = self.additional[idx + 1]
 
         with self.build_file.overload(entering_parameters):
             self.build_commands(
