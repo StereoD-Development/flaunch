@@ -36,5 +36,10 @@ FLAUNCH_ARGUMENTS   = 'FLAUNCH_ARGUMENTS'
 
 
 # -------------------------------------------
-# --
+# -- Ports for different services
 # -------------------------------------------
+
+_STARTING_PORT = 8456 # Incr from this (+1, +2, etc)
+
+# The transfer utility
+TRANSFER_PORT = _STARTING_PORT + 1

@@ -26,7 +26,6 @@ class _AbstractManager(object):
 
     def __init__(self, app, arguments, build_file, source_dir=None):
         self._app         = app
-        # self._is_local    = arguments.local
         self._arguments   = arguments
         self._no_clean    = arguments.no_clean if hasattr(arguments, 'no_clean') else False
         self._additional  = arguments.additional_arguments
@@ -173,20 +172,26 @@ class _AbstractManager(object):
             os.environ.update({key: self.build_file.expand(value)})
 
 
-    def build_commands(self, condition, build_data, type_):
+    def build_commands(self, condition, build_data, type_ = None):
         """
         General method for getting commands together from our build data and
         executing them via the BuildCommandParser
         :param condition: conditional parameter (if any) - str | None
         :param build_data: The COMMAND_LIST we're potentially executing
-        :param type_: Pretty name of th condition
+        :param type_: Pretty name of the condition (if any)
         :return None:
         """
+
+        if type_:
+            type_ = type_ + ' '
+        else:
+            type_ = ''
+
         if build_data:
 
             ok = condition is None  # False if conditions required
             if condition:
-                logging.debug('Checking {} {} Conditions...'.format(
+                logging.debug('Checking {}{} Conditions...'.format(
                     type_, self.type_.capitalize()
                 ))
 
@@ -202,7 +207,7 @@ class _AbstractManager(object):
                     ok = True
 
             if ok:
-                logging.debug('Start {} Execution...'.format(type_))
+                logging.debug('Start {}Execution...'.format(type_))
                 parser = BuildCommandParser(
                     build_data, self.build_file, self._additional
                 )
@@ -215,4 +220,4 @@ class _AbstractManager(object):
                         list(map(logging.critical, traceback.format_exc().split('\n')))
                     sys.exit(1)
         else:
-            logging.debug('No {} Commands'.format(type_))
+            logging.debug('No {}Commands'.format(type_))

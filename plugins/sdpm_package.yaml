@@ -65,7 +65,7 @@ func__sdpm_deploy_simple(sdpm_version, sdpm_fix_number):
   - ":MKDIR -s {deployment_loc}"
   - ":FUNC get_complete_files_path()"
   - ":CD {complete_files}"
-  - windows: ":ZIP ../{_sdpm_archive} -f ./"
+  - windows: ":ZIP ../{_sdpm_archive} -f ./ -n"
     unix: tar -cvzf ../{_sdpm_archive} ./*
   - ":COPY -f {build_dir}/* {deployment_loc}"
   - ":MOVE -f ../{_sdpm_archive} {deployment_loc}"
@@ -135,10 +135,10 @@ raw:
 
     help: |
       Transfer a deployed package to other sdpm facilities (at the
-      moment  this is locked to Toronto only)
+      moment this is locked to Toronto as the source only)
 
     arguments:
-      - [sdpm_full_version, Major.Minor.Subminor/#### version to transfer, '[0-9]+\.[0-9]+\.[0-9]+/[0-9]{4}']
+      - [sdpm_full_version, Major.Minor.Subminor/#### version to transfer, '[0-9]+\.[0-9]+\.[0-9]+\/[0-9]{4}']
 
     commands:
       - ":FUNC sdpm_transfer_to_facilities({sdpm_full_version})"

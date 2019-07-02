@@ -55,7 +55,6 @@ class CopyCommand(_BuildCommand):
             elif not os.path.exists(os.path.dirname(self.data.destination)):
                 os.makedirs(os.path.dirname(self.data.destination))
 
-
         elif not os.path.isdir(os.path.dirname(self.data.destination)):
             raise RuntimeError(
                 'Destination directory does not exist! {} (Consider using the --make-dirs flag)' \
@@ -80,8 +79,12 @@ class CopyCommand(_BuildCommand):
             if root.endswith('/'):
                 root = root[:-1]
 
-        if len(data) > 1 and not os.path.exists(self.data.destination):
-            os.makedirs(self.data.destination)
+        destination = self.data.destination
+        if len(data) > 1 and not os.path.exists(destination):
+            os.makedirs(destination)
+
+        elif os.path.isdir(self.data.destination) and os.path.isfile(data[0]):
+            destination = os.path.join(self.data.destination, os.path.basename(data[0]))
 
         ignore_patterns = self.data.exclude or []
         ignore_func = shutil.ignore_patterns(*ignore_patterns)
@@ -93,9 +96,9 @@ class CopyCommand(_BuildCommand):
             if root:
                 if base.startswith('/'):
                     base = base[1:]
-                dest = self.data.destination + '/' + base
+                dest = destination + '/' + base
             else:
-                dest = self.data.destination
+                dest = destination
 
             ok = True
             for pattern in ignore_patterns:
@@ -476,3 +479,21 @@ class FailCommand(_BuildCommand):
         """
         text = ' '.join(self.data.text)
         raise RuntimeError(text)
+
+
+class ReturnCommand(_BuildCommand):
+    """
+    Way to return from a process without having to spin through all commands
+    """
+    alias = 'RETURN'
+
+    def description(self):
+        return 'Return from the current scope (function or set of commands)'
+
+
+    def populate_parser(self, parser):
+        return # Nothing currently
+
+
+    def run(self, build_file):
+        return _BuildCommand.RETURN_COMMAND

@@ -1,7 +1,7 @@
 #
 # global flaunch utility template
 #
-# All build.yaml files inherit this
+# All build.yaml files inherit this even if they don't set it explicitly
 #
 
 props:
@@ -12,9 +12,13 @@ props:
     windows: //isilon2
     unix: /mnt/isilon2
 
+  # _platform_server: "D:"
+
   _predeploy_folder: "{_platform_server}/s3d/resources/sw/temp/flux_predeploy/{package}/{platform}"
 
   # -- Overloaded as needed
+
+  flaunch_repo: "{_platform_server}/s3d/flux_packages/{package}"
 
   #
   # The install_path is important. For basic packages, they don't
@@ -51,6 +55,13 @@ func__get_complete_files_path():
 #
 func__install_path_to_predeploy(predeploy_version):
   - ":SET {package}.{predeploy_version}.zip package_zip"
+  - ":FUNC get_complete_files_path()"
+  - [ "--use-existing",
+        {
+          clause: 'file_exists("{_predeploy_folder}/{predeploy_version}/{package_zip}")',
+          commands: ":RETURN"
+        }
+    ]
   - [ "--force",
         # True:
         ":DEL {_predeploy_folder}/{predeploy_version}",
@@ -60,7 +71,6 @@ func__install_path_to_predeploy(predeploy_version):
           commands: ':FAIL "Files for version: \"{predeploy_version}\" already exists! (use --force to override)"'
         }
     ]
-  - ":FUNC get_complete_files_path()"
   - ":CD {complete_files}"
   - ":ZIP {package_zip} -f {complete_files}/* -n"
   - ":MOVE --make-dirs {package_zip} {_predeploy_folder}/{predeploy_version}/"
@@ -84,7 +94,15 @@ build:
 
 deploy:
 
+  #
+  # - version: Parameter provided by fbuild
+  #
+
   pre_deploy:
     - ":FUNC install_path_to_predeploy({version})"
 
-
+  commands:
+    - ":SET {package}.{version}.zip package_zip"
+    - ":SET {_predeploy_folder}/{version}/{package_zip} deployable_files"
+    - ":COPY -f --make-dirs {deployable_files} {flaunch_repo}/{platform}/"
+    - ":DEPLOY {package_zip}"
