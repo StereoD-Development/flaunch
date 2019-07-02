@@ -135,16 +135,19 @@ class BuildCommandParser(object):
                     # Ready to run!
                     if not isinstance(commands, (list, tuple)):
                         commands = [commands]
-                    self._exec_internal(commands)
+                    if self._exec_internal(commands) == _BuildCommand.RETURN_COMMAND:
+                        return _BuildCommand.RETURN_COMMAND
                     continue
 
                 # If we've made it here, it means we broke out, therefore we
                 # should check if we have a negative command set
                 if negative:
                     if isinstance(negative, (list, tuple)):
-                        self._exec_internal(negative)
+                        if self._exec_internal(negative) == _BuildCommand.RETURN_COMMAND:
+                            return _BuildCommand.RETURN_COMMAND
                     else:
-                        self._exec_internal([negative])
+                        if self._exec_internal([negative]) == _BuildCommand.RETURN_COMMAND:
+                            return _BuildCommand.RETURN_COMMAND
 
             elif isinstance(command_info, dict):
                 #
@@ -180,15 +183,21 @@ class BuildCommandParser(object):
                             return # - Didn't work
 
                     if isinstance(commands_from_dict, (list, tuple)):
-                        self._exec_internal(commands_from_dict)
+                        if self._exec_internal(commands_from_dict) == _BuildCommand.RETURN_COMMAND:
+                            return _BuildCommand.RETURN_COMMAND
                     else:
-                        self._exec_internal([commands_from_dict])
+                        if self._exec_internal([commands_from_dict]) == _BuildCommand.RETURN_COMMAND:
+                            return _BuildCommand.RETURN_COMMAND
+
                 elif isinstance(command_info, (list, tuple)):
                     # Just a platform reroute
-                    self._exec_internal(command_info)
+                    if self._exec_internal(command_info) == _BuildCommand.RETURN_COMMAND:
+                        return _BuildCommand.RETURN_COMMAND
+
                 elif isinstance(command_info, utils.string_types):
                     # Single command platform reroute
-                    self._exec_internal([command_info])
+                    if self._exec_internal([command_info]) == _BuildCommand.RETURN_COMMAND:
+                        return _BuildCommand.RETURN_COMMAND
 
 
             elif isinstance(command_info, utils.string_types):
@@ -199,7 +208,9 @@ class BuildCommandParser(object):
                 this_command._setup() # Vital, see the docstring for more
                 logging.debug(str(this_command))
                 with log.log_indent():
-                    this_command.run(self._build_file)
+                    result = this_command.run(self._build_file)
+                    if result == _BuildCommand.RETURN_COMMAND:
+                        return _BuildCommand.RETURN_COMMAND # We want to brak out of this loop!
 
             else:
                 logging.critical(

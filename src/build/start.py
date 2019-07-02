@@ -72,6 +72,17 @@ def _commands(args):
             inst._parser.print_help()
 
 
+def _register(args):
+    """
+    Registration utility for Flux
+    :param args: The args namespace object our parser returns
+    :return: None
+    """
+    manager = deploy.DeployManager.get_manager(args.package, args)
+    if manager.run_registration():
+        logging.info('Registration Complete')
+
+
 def _raw(args):
     """
     Exection of arbtrary COMMAND_LISTS fed through our build.yaml file
@@ -147,15 +158,34 @@ def build_parser():
     _fill_parser_with_defaults(deployer)
     deployer.add_argument('package', help='The package we\'re deploying')
     deployer.add_argument('version', help='The version that we\'re deploying')
-    deployer.add_argument('--release', action='store_true', help='Deploy a release version')
-    deployer.add_argument('--beta', action='store_true', help='Deploy a beta version')
+    deployer.add_argument('-t', '--transfer', action='store_true', help='Transfer material around the globe')
+    deployer.add_argument(
+        '-s', '--skip-wait',
+        action='store_true',
+        help='Don\'t wait for transfers to complete before returning',
+    )
+    deployer.add_argument('-d', '--destination', action='append', help='Facility codes to transfer to (e.g. tor, mad, etc.)')
+    deployer.add_argument('-e', '--exclude', action='append', help='Facility codes to not transfer to')
+    deployer.add_argument('-p', '--platform', action='append', help='Supply specific platforms to trasnfer for')
     deployer.add_argument('-c', '--custom', nargs=2, metavar=('YAML', 'SOURCE'), help='Custom yaml file and source directory location')
     deployer.set_defaults(func=_deploy)
 
+    # -- Basic utility toolchain (TODO)
     helper = subparsers.add_parser('commands', description='Internal fbuild command utils')
     _fill_parser_with_defaults(helper)
     helper.add_argument('-d', '--docs', action='store_true', help='Print all known commands and their arguments')
     helper.set_defaults(func=_commands)
+
+    # -- Registration
+    register = subparsers.add_parser('release', description='Register a version with Flux. Do this last')
+    _fill_parser_with_defaults(register)
+    register.add_argument('package', help='The package that we want to register with Flux')
+    register.add_argument('version', help='The version of the package that we\'re sending to Flux')
+    register.add_argument('-b', '--beta', action='store_true', help='This is a pre-release, not production current')
+    register.add_argument('-f', '--force', action='store_true', help='Force the version even if it already exists on Atom')
+    register.add_argument('-s', '--skip-validation', action='store_true', help='Skip global file validation (careful)')
+    register.add_argument('-c', '--custom', nargs=2, metavar=('YAML', 'SOURCE'), help='Custom yaml file and source directory location')
+    register.set_defaults(func=_register)
 
     # -- Raw Command Toolkit
     raw_commands = subparsers.add_parser('raw', description='Run loose structured commands from our build.yaml files')

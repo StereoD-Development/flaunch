@@ -57,24 +57,50 @@ class PlatformDict(object):
     :WARNING: This will return None for missing keys rather than raise
     an error!
 
+    Should you need, you can also pass in a platform if you're looking to
+    use some cross-platform magic
+
+    :example:
+
+        my_map = PlatformDict({'foo' : {'unix': 'bar' } }, 'linux')
+        print (my_map['foo'])
+
+        # On Windows
+        >>> bar
+
     :Note: The platform names are semi-case sensitive. For keywords stick
     to first capital or all lower (e.g. 'Unix' or 'unix' (NOT 'UNIX'))
     """
-    def __init__(self, og_dict = {}):
+    def __init__(self, og_dict = {}, platform_ = _this_platform):
+        self._platform = platform_
         if not isinstance(og_dict, dict):
             raise LaunchJsonError('Build/Launch data must be a dictionary!')
         self.__d = og_dict
 
 
+    @property
+    def platform(self):
+        return self._platform
+
+
+    def set_platform(self, platform_):
+        self._platform = platform_
+
+
+    @property
+    def is_unix(self):
+        return self._platform.lower() in ['linux', 'darwin', 'unix']
+
+
     def __get_dict_entry(self, val):
-        if _this_platform in val:
-            val = val[_this_platform]
-        elif _is_unix and val in ('unix', 'Unix'):
+        if self.platform in val:
+            val = val[self.platform]
+        elif self.is_unix and val in ('unix', 'Unix'):
             val = val[('unix' if 'unix' in val else 'Unix')]
         else:
-            val = val.get(_this_platform.lower(), val)
+            val = val.get(self.platform.lower(), val)
         if isinstance(val, dict):
-            return PlatformDict(val)
+            return PlatformDict(val, platform_=self._platform)
         return val
 
 
@@ -98,7 +124,11 @@ class PlatformDict(object):
 
 
     def __deepcopy__(self, memo=None):
-        return PlatformDict(deepcopy(self.__d))
+        """
+        Make a proper deepcopy of this object.
+        """
+        return PlatformDict(deepcopy(self.__d),
+                            platform_=self.platform)
 
 
     @classmethod

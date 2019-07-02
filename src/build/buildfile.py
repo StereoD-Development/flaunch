@@ -35,36 +35,42 @@ class BuildFile(_AbstractFLaunchData):
 
         self._name = name
         self._templates = {}
-        self._build_manager = manager
+        self._manager = manager
         self._load()
 
+    def get_manager(self):
+        """
+        Get the manager (if any)
+        :return: _AbstractManager subclass
+        """
+        return self._manager
 
     def set_manager(self, manager):
         """
         Link ourselves back to a build manager
         :param manager: The BuildManager that owns this item
         """
-        self._build_manager = manager
+        self._manager = manager
 
 
     @property
     def additional(self):
-        if self._build_manager:
-            return self._build_manager.additional
+        if self._manager:
+            return self._manager.additional
         return []
 
 
     @property
     def build_dir(self):
-        if self._build_manager:
-            return self._build_manager.build_dir
+        if self._manager:
+            return self._manager.build_dir
         return ''
 
 
     @property
     def source_dir(self):
-        if self._build_manager:
-            return self._build_manager.source_dir
+        if self._manager:
+            return self._manager.source_dir
         return ''
 
 
@@ -89,6 +95,18 @@ class BuildFile(_AbstractFLaunchData):
         For variable expansion, we handle it at the build file level
         """
         return deepcopy(self['props']) or PlatformDict()
+
+
+    def expand_prop(self, prop):
+        """
+        Expand a property value (if it exists)
+        :param prop: str property value
+        :return: str|None
+        """
+        v = (self['props'] or PlatformDict())[prop]
+        if v:
+            return self.expand(v)
+        return None
 
 
     def command_environment(self, env):
@@ -189,7 +207,7 @@ class BuildFile(_AbstractFLaunchData):
                 return
 
             # FIXME: Need to check for cyclic dependencies
-            plugin_bf = BuildFile(self.package, plugin_filepath, manager=self._build_manager, name=plugin)
+            plugin_bf = BuildFile(self.package, plugin_filepath, manager=self._manager, name=plugin)
             self._templates[plugin] = plugin_bf
 
             self._data = PlatformDict(

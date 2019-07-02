@@ -26,6 +26,8 @@ class _BuildCommand(object):
     """
     alias = None
 
+    RETURN_COMMAND = 'RETURN_COMMAND'
+
     def __init__(self, *arguments):
         self._arguments = arguments
         self._parser = argparse.ArgumentParser(

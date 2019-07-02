@@ -207,7 +207,7 @@ class ConnectionManager(object):
         self._save_setting('timestamp', time.time())
 
 
-def _default_headers():
+def default_headers():
     return {
         'Accept' : 'application/json',
         'X-Flux-Facility' : FLUX_FACILITY,
@@ -224,7 +224,7 @@ def _get(endpoint, **params):
     return requests.get(
         manager.url + '/rest/latest' + endpoint,
         params=params,
-        headers = _default_headers()
+        headers = default_headers()
     )
 
 
@@ -367,7 +367,7 @@ def register_package(package, version, method='get', launch_data=None, force=Fal
 
     result = getattr(manager.client, method)(
         manager.url + '/rest/latest/core/package/register',
-        headers=_default_headers(),
+        headers=default_headers(),
         cookies=manager._login_response.cookies,
         **kwargs
     )
@@ -380,7 +380,8 @@ def register_package(package, version, method='get', launch_data=None, force=Fal
     else:
         data = result.json()
         if 'error' in data:
-            logging.error(data['error'])
+            # Hack for cli friendly
+            logging.error(data['error'].replace('"force"', '"--force"'))
             return None
 
         return data
@@ -431,3 +432,25 @@ def find_similar_pacakges(package_name):
     if diffs:
         with log.log_indent():
             logging.info("Did you mean: {} ?".format(diffs[0][1]))
+
+
+def get_facilities():
+    """
+    Obtain all known facility information
+    :return: list[dict]
+    """
+    result = _get('/facility/get')
+    try:
+        result.raise_for_status()
+    except:
+        logging.critical('Could not locate facility information!')
+        raise
+
+    data = result.json()
+    if isinstance(data, dict) and 'error' in data:
+        logging.error('Error getting facilities:')
+        with log.log_indent():
+            logging.error(data['error'])
+        return []
+
+    return data

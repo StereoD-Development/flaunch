@@ -67,6 +67,20 @@ class _AbstractFLaunchData(object):
         self._data = self._original_data.pop()
 
 
+    @contextmanager
+    def platform_override(self, platform_):
+        """
+        While in play, we act as though the object is being used under a
+        different platform and evaluate accordingly.
+        """
+        original_platform = self._data.platform[:]
+        self._active_platform = platform_
+        self._data.set_platform(platform_)
+        yield
+        self._data.set_platform(original_platform)
+        del self._active_platform
+
+
     def add_global_attr(self, key, value):
         """
         We have an attribute to stick no matter that the scope is
@@ -92,6 +106,8 @@ class _AbstractFLaunchData(object):
         The python platform we're working with
         :return: str
         """
+        if hasattr(self, '_active_platform'):
+            return self._active_platform
         return platform.system()
 
 
