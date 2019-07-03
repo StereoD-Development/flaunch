@@ -50,7 +50,7 @@ def _build(args):
     if args.branch or args.tag:
         repo_path = os.path.join(
             os.environ.get(constants.FLAUNCH_DEV_DIR, os.getcwd()),
-            package
+            args.package
         )
 
         if not os.path.exists(repo_path):
@@ -59,7 +59,7 @@ def _build(args):
             else:
                 logging.error('Cannot find repository! (include --git with link if needed)')
                 sys.exit(1)
-            os.chdir(package) # Not foolproof
+            os.chdir(args.package) # Not foolproof
         else:
             os.chdir(repo_path)
 
