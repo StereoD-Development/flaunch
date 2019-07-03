@@ -31,13 +31,33 @@ The above command will grab `PyFlux` from our repository and prep our environmen
 `flaunch` can run direct commands within and environment as well with the `--run` flag
 
 ```
-~$> flaunch -p MyAPI -p PyFluxMyStudio --run python /my/script.py
+~$> flaunch -p MyAPI -p PyFluxMyStudio/1.0.0 --run python /my/script.py
 ```
 
 You'll notice we used multiple root packages with the short form of `--package` which is just `-p`. This can be used an unlimited number of times.
 
+The `/` denotes to `flaunch` that a specific version of the package should be used.
+
+> Note: To support a transition period, `flaunch` also supports `:` delimited package strings
+
 # Build
+```
+fbuild -v Helios
+```
 This is better left to some of the more formal [Documentation](doc/buildyaml.md).
+
+# Deploy
+```
+fbuild deploy Helios 0.9.16 --transfer
+```
+Another section where [documentation](doc/deploy.md) will do some good.
+
+# Release
+Releasing a package is the process of taking a deployed package and making it available to users.
+
+```
+fbuild release Helios 0.9.16
+```
 
 # Compose
 Let's say we want to turn something fugly like:

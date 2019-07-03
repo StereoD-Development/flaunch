@@ -7,7 +7,7 @@ The `fbuild` framework helps merge the worlds of building a package, testing it 
 
 At the heart of `flaunch` packages is the `build.yaml` files and our utility of them.
 
-Rather than creating complicated python build scripts for everything or handling much of the same code over and over, we use a simple yaml file that can handle both simple file organization as well as complicated builds and pre/post process procedures.
+Rather than creating complicated python build scripts for everything or handling much of the same code over and over, we use a simple yaml file that can handle both basic file organization as well as dynamic builds and pre/post process procedures.
 
 * [Starting Out](#starting-out)
     * [The Package](#the-package)
@@ -28,6 +28,7 @@ Rather than creating complicated python build scripts for everything or handling
 * [Raw Commands](#raw-commands)
     * [Command Arguments](#command-arguments)
     * [Listing Commands](#listing-commands)
+* [Deployment](#deploy)
 * [Build Types](#build-types)
 
 # Starting Out
@@ -174,7 +175,7 @@ Now that we have some of the basics down, let's talk about some of the features 
 ## Variable Expansion
 Because builds are often complex, we have made sure `build.yaml` and `launch.json` are template-able, and have many ways of reducing the overhead between platforms and packages.
 
-One of the biggest way we do that is variable expansion. By using the syntax of `{<keyword>}`, we declare to the toolkit that we want it to search our current environment, and possibly [`props:`](#props:), for the value to inject.
+Arguably the most vital feature is variable expansion. By using the syntax of `{<keyword>}`, we declare to the toolkit that we want it to search our current environment, and possibly [`props:`](#props:), for the value to inject.
 
 Given the following:
 
@@ -182,9 +183,10 @@ Given the following:
 proper_dir: {home}/bar
 ```
 
-The toolkit, on Unix platforms, would convert that to `/home/my_username/bar`
+The toolkit, on Unix platforms, would convert that to `/home/<my_username>/bar`
 
 ### Special Keywords
+It's worth noting that some values are baked into the `build.yaml` system
 
 * `{path}`: Path to the package (source files for `build.yaml` and package dir for `launch.json`)
 * `{platform}` : Python platform.system() that the command is being run from
@@ -220,7 +222,7 @@ proper_dir:
   darwin: {home}/bar
 ```
 
-This will now expand properly for both platforms.
+This will now expand properly for all three platforms.
 
 > Tip: Platform routing can be used _anywhere_! You can even use it to change the build type if required. (Although that is a little crazy)
 
@@ -317,7 +319,7 @@ build:
 There's a lot going on there but it's quite useful for handling many of our usual tasks without having to write multiple scripts to do so
 
 * `pre_build_condition`: A basic condition that looks for an argument in our initial `fbuild` command
-    * In the example, this looks for `--run-prebuild`
+    * In the example, `fbuild` will look for `--run-prebuild`
 * `pre_build`: A Command List that we'll execute if `pre_build_condition` is null, not provided, or resolves to true.
     * In the example, we have a few `fbuild` commands that copy a file, read said file into a property, and then print that to our user
 * `post_build_condition`: A basic condition that looks for the argument in our initial `fbuild` command
@@ -395,9 +397,11 @@ Nothing would happen! That's because the plugin `post_build` command looks for t
 fbuild -v MyDerivedBuild --extra-build
 ```
 
-The `include` option is a list so multiple deriving from multiple templates is possible, and because this is `build.yaml`, you can even template based on platform. Sky is the limit.
+The `include` option is a list so multiple deriving from multiple templates is possible, and because this is `build.yaml`, you can even template based on platform. Sky's the limit.
 
 > Tip: The order of include is important. The overloading of values will continue from the first to the last. So if package `a` includes template `b` and `c` in that order, `a` will take precedence, followed by `c`, and then `b` 
+
+> Note/Tip/Info/Important: _ALl_ `build.yaml`'s have the `global.yaml` template as a base, even if not explicitly marked. This provides a common ground for all packages but can be completely ignored/overloaded when required.
 
 # Raw Commands
 Intense pipelines often present the desire for automation outside of just building and deployment. For this reason, we've included `raw` commands to help execute arbitrary commands.
@@ -419,7 +423,7 @@ raw:
 
     # The COMMAND_LIST to run
     commands:
-      - ":FUNC a_custom_command()"
+      - ":FUNC a_custom_command_that_takes_an_argument({foo_bar})"
 ```
 
 Given the above `raw` command, we can then access it through our `fbuild raw` interface.
@@ -450,6 +454,9 @@ Raw commands for: MyPackage
         foo_bar: A required parameter to be passed in
 # ... Additional commands
 ```
+
+# Deployment
+This get it's own [document](deploy.md)
 
 # Build Types
 
