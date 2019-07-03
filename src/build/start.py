@@ -15,13 +15,19 @@ from build import command
 from build import compose
 from build import deploy
 from build import raw
+from common import constants
+from common import gitutil
 from common import utils
 from common import log
 
 full_description = """Building and deployment toolkit for the Flux ecosystem.
-The flaunchdev suite of commands is build to help serve as a boundary between developer,
+The fbuild suite of commands is built to help serve as a boundary between developer,
 their development environments, and production stable code. This is not to be confused
-with a build management software a-la buildbot, 
+with a build management software a-la buildbot - at least not yet.
+
+The other major key is unity via simplicity. Creating environments where the same
+commands works on multiple machines and platforms handling the differences in a
+seamless way.
 """
 
 def _build(args):
@@ -36,7 +42,30 @@ def _build(args):
     # peering into the build.yaml in the event it's different than the current
     # branch
     #
-    # TODO
+
+    def _fail_or_pass(result):
+        if not result:
+            sys.exit(1)
+
+    if args.branch or args.tag:
+        repo_path = os.path.join(
+            os.environ.get(constants.FLAUNCH_DEV_DIR, os.getcwd()),
+            package
+        )
+
+        if not os.path.exists(repo_path):
+            if args.git:
+                _fail_or_pass(gitutil.clone_repo(args.git))
+            else:
+                logging.error('Cannot find repository! (include --git with link if needed)')
+                sys.exit(1)
+            os.chdir(package) # Not foolproof
+        else:
+            os.chdir(repo_path)
+
+        _fail_or_pass(gitutil.fetch())
+        _fail_or_pass(gitutil.stash())
+        _fail_or_pass(gitutil.checkout(branch=args.branch, tag=args.tag))
 
     manager = manage.BuildManager.get_manager(args.package, args)
     manager.run_build()
@@ -158,7 +187,7 @@ def build_parser():
     _fill_parser_with_defaults(deployer)
     deployer.add_argument('package', help='The package we\'re deploying')
     deployer.add_argument('version', help='The version that we\'re deploying')
-    deployer.add_argument('-t', '--transfer', action='store_true', help='Transfer material around the globe')
+    deployer.add_argument('-t', '--transfer', action='store_true', help='Copy material to repository and transfer around the globe')
     deployer.add_argument(
         '-s', '--skip-wait',
         action='store_true',
@@ -171,7 +200,7 @@ def build_parser():
     deployer.set_defaults(func=_deploy)
 
     # -- Basic utility toolchain (TODO)
-    helper = subparsers.add_parser('commands', description='Internal fbuild command utils')
+    helper = subparsers.add_parser('command', description='Internal fbuild command utils')
     _fill_parser_with_defaults(helper)
     helper.add_argument('-d', '--docs', action='store_true', help='Print all known commands and their arguments')
     helper.set_defaults(func=_commands)
@@ -206,7 +235,7 @@ def build_parser():
     composer.add_argument('-u', '--pre-release', action='store_true', help='When registering, don\'t make this the active version')
     composer.add_argument('-r', '--run', action='store_true', help='This is a direct execution (within our environment)')
     composer.add_argument('-a', '--arg', action='append', help='The default arguments to pass to the launched process')
-    composer.add_argument('-e', '--env', action='append', help='The environment variables to set whehn running this launcher (VAR_NAME=value)')
+    composer.add_argument('-e', '--env', action='append', help='The environment variables to set when running this launcher (VAR_NAME=value)')
     composer.add_argument('-f', '--force-update', action='store_true', help='Force update if the version exists')
     composer.set_defaults(func=_compose)
 

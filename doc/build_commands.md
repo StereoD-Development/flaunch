@@ -4,7 +4,7 @@ Command Lists
 Another vital and powerful feature of `fbuild` is it's rich command tools. By abstracting some components into easy-to-use commands, while leaving the ability to run raw command line expressions, you can get the most out of the build technology without having to have a different build procedure for each platform.
 
 # The Syntax
-A Command List is, unsurprisingly, a list of commands that we want to execute. A "Command" in this context *isn't* just a command line operation but potentially a tree of possible code paths to follow should the need arise.
+A Command List is, unsurprisingly, a list of commands that we want to execute. A "Command" in this context *isn't* just a command line operation but potentially a tree of possible code paths to follow.
 
 ## Basic Command
 ```
@@ -38,7 +38,7 @@ Now, let's say we only wanted to run select commands when a select argument was 
   ]
 ```
 
-This command will always print out `"I'll go no matter what!"` but, unless `--some-arg` is passed to the command line of `fbuild` or `flaunch`, it's not going to happen!
+This command will always print out `"I'll go no matter what!"` but, unless `--some-arg` is passed to the command line of `fbuild`, it's not going to happen!
 
 ## Clause Conditional Commands
 ```
@@ -61,6 +61,8 @@ Currently, the provided functions are:
 
 * `env_check(var, val)` : Check if an environment variable is set to a specific value
 * `env_set(var)`: Check if an environment variable is set to anything
+* `prop_set(var)`: Check if our `build.yaml` has a specific property set
+* `file_exists(var)`: Check if a file at a given path exists
 
 ## Platform Routing
 Because this is `build.yaml` - _any_ _time_ you want to route based on platform, you are allowed to do so. Command Lists are no exception.
@@ -79,7 +81,7 @@ Because this is `build.yaml` - _any_ _time_ you want to route based on platform,
 ```
 On top of having access to your terminal from the build process, you have a small but mighty suite of additional commands at your disposal. For general actions like writing/reading from a file, to copying/moving files in a platform agnostic way.
 
-What's more, is command plugins can be made to suit your/your pipelines specific needs should a problem present itself.
+What's more, is command plugins can be made to suit your pipelines specific needs should a problem present itself.
 
 An FBuild Command is used by starting with a `:` and followed by the alias to the command itself.
 
@@ -110,7 +112,7 @@ There's a lot going on there, but hopefully it's pretty straight forward.
 To find documentation on all native commands you can run the following:
 
 ```
-fbuild commands --doc
+fbuild command --doc
 ```
 
 ### :PYTHON Command
@@ -121,7 +123,7 @@ For example:
 # ...
   my_script: |
     username = 'My Cool Name'
-    x = {username}
+    x = '{username}'
 ```
 
 This resolve to something like:
@@ -139,6 +141,20 @@ By simply adding a space:
 ```
 You will get the desired results. Odds are this will be a very rare occurrence but worth noting none the less.
 
+### :SUPER Command
+In the event we want to overload a proceedure or simple call another set of commands from a [template](buildyaml.md#a-template) we're overloading.
+
+```
+include:
+  - some_package
+build:
+  # ...
+  commands:
+    - ":PRINT foo"
+    - ":SUPER some_package.build.commands"
+```
+
+This is akin to python's `super()`
 
 ### :FUNC Command
 A useful command for refining your build procedure and componentalizing (not a word) your toolkit.
@@ -156,20 +172,17 @@ Then it's up to you what you want to do within that Command List. You can use al
     - ":FUNC my_function()"
 ```
 
-> Note: As of June 2019, we don't make use of the `()` in our functions but they are required for future expansion and utility (think loop countdown, tings of that nature).
-
-> Warning: Because we don't have a way to break out of a function and arguments are always global, for the time being be careful not to introduce a loop, which will go on forever.
-
 ### :FUNC Arguments
 With the latest version of `fbuild`, we've introduced arguments into functions.
 
-You have the ability to provide through two interfaces.
+You have the ability to provide through three interfaces.
 
 1. Through `props:`
     * This is pretty straight forward and allows you to provide different values as needed
 2. Through the cli
+3. Through the function call itself
 
-For the second option, things get really interesting, let's look at an example
+For the second/third option, things get really interesting, let's look at an example
 
 ```yaml
 func__function_with_args(foo_bar, schmoo):
@@ -181,6 +194,49 @@ Now that our function has arguments, we can supply them through the cli with a s
 
 ```
 ~$> ... --foo-bar the_first_value --schmoo another_value
+```
+
+We also support simply passing the arguments as you would in any other language
+
+```yaml
+  #...
+  commands:
+    - ":SET {some_expansion}/{my_file}.zip blarg"
+    - ":SET {some_expansion}/{my_file}.tar.gz blarg_two"
+    - ":FUNC function_with_args({blarg}, {blarg_two})" # Will expand and map accordingly
+```
+
+### :RETURN Command
+When working with COMMAND_LISTS and functions there may be a scenario where you need to return from the current scope
+
+# Comand Expansion (... Notation)
+Occasionally, we have to handle command line arguments in a list fashion. For example:
+
+```yaml
+props:
+  some_arguments: '-t foo -vvv --another-arg "blarg bloog"'
+
+# ...
+  commands:
+    - "mytool {some_arguments} {my_filename}.foo"
+```
+
+When running those commands, the terminal would recieve:
+```
+["mytool"] ["-t foo -vvv --another-arg \"blarg bloog\""] ["the_filename.foo"]
+```
+
+No sensible parser would be able to understand that. To help with this, while using a `COMMAND_LIST`, you can denote that you want to separate via an `shlex.split()`.
+
+```
+# ...
+  commands:
+    - "mytool {some_arguments...} {my_filename}.foo"
+```
+
+Which translates to:
+```
+["mytool"] ["-t"] ["foo"] ["-vvv"] ["--another-arg"] ["blarg bloog"] ["the_filename.foo"]
 ```
 
 # Chaining Commands

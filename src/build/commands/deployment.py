@@ -9,11 +9,7 @@ from __future__ import print_function, absolute_import
 
 import os
 import sys
-import shutil
 import logging
-import argparse
-
-# import imp
 
 from common import utils
 from types import ModuleType
@@ -28,7 +24,7 @@ class DeploymentCommand(_BuildCommand):
     alias = 'DEPLOY'
 
     def description(self):
-        return 'Deployment mechanism (can only be called from deploy:commands'
+        return 'Deployment mechanism (can only be called from deploy:commands)'
 
 
     def populate_parser(self, parser):
