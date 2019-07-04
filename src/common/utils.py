@@ -8,9 +8,13 @@ import os
 import sys
 import json
 import shlex
+import shutil
+import logging
+import tempfile
 import platform
 import subprocess
-import logging
+
+from contextlib import contextmanager
 
 from . import log
 from .platformdict import PlatformDict
@@ -265,3 +269,33 @@ def cli_name(arg):
     :return: str
     """
     return '--' + arg.replace('_', '-')
+
+
+@contextmanager
+def cd(new_directory, cleanup=lambda: True):
+    """
+    Quick context for working in our temp directory
+    """
+    previous = os.getcwd()
+    os.chdir(os.path.expanduser(new_directory))
+    try:
+        yield
+    finally:
+        os.chdir(previous)
+        cleanup()
+
+
+@contextmanager
+def temp_dir(change_dir=True):
+    """
+    Quick temp directory that we move into to do our work
+    :return: The new temp directory (we've also cd'd into it) 
+    """
+    dirpath = tempfile.mkdtemp()
+    def _clean():
+        shutil.rmtree(dirpath)
+    if change_dir:
+        with cd(dirpath, _clean):
+            yield dirpath
+    else:
+        yield dirpath

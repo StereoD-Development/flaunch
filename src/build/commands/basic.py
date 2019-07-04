@@ -18,8 +18,8 @@ import platform
 from contextlib import contextmanager
 from collections import deque
 
+from common import utils
 from build.command import _BuildCommand
-
 
 class CopyCommand(_BuildCommand):
     """
@@ -385,39 +385,12 @@ class EnvCommand(_BuildCommand):
         )
 
 
-    @contextmanager
-    def _cd(self, new_directory, cleanup=lambda: True):
-        """
-        Quick context for working in our temp directory
-        """
-        previous = os.getcwd()
-        os.chdir(os.path.expanduser(new_directory))
-        try:
-            yield
-        finally:
-            os.chdir(previous)
-            cleanup()
-
-
-    @contextmanager
-    def temp_dir(self):
-        """
-        Quick temp directory that we move into to do our work
-        :return: The new temp directory (we've also cd'd into it) 
-        """
-        dirpath = tempfile.mkdtemp()
-        def _clean():
-            shutil.rmtree(dirpath)
-        with self._cd(dirpath, _clean):
-            yield dirpath
-
-
     def run(self, build_file):
         """
         Execute the script, then read back the environment into our
         active process
         """
-        with self.temp_dir() as tempdir: # For easy cleanup
+        with utils.temp_dir() as tempdir: # For easy cleanup
 
             logging.info('Sourcing Environment: {}'.format(self.data.script_command))
             env_txt_file = '_setup_environment.txt'
