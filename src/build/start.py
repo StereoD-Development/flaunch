@@ -30,6 +30,38 @@ commands works on multiple machines and platforms handling the differences in a
 seamless way.
 """
 
+def _fail_or_pass(result):
+    """
+    Minor util to exit if we hit a failure on the gitutil functions.
+    :param result: boolean
+    :return: None
+    """
+    if not result:
+        sys.exit(1)
+
+
+def _go_to_repo(args):
+    """
+    Quick way to move into a repository
+    :param args: arguments that were supplied via argparse
+    :return: None
+    """
+    repo_path = os.path.join(
+        os.environ.get(constants.FLAUNCH_DEV_DIR, os.getcwd()),
+        args.package
+    )
+
+    if not os.path.exists(repo_path):
+        if args.git:
+            _fail_or_pass(gitutil.clone_repo(args.git))
+        else:
+            logging.error('Cannot find repository! (include --git with link if needed)')
+            sys.exit(1)
+        os.chdir(args.package) # Not foolproof
+    else:
+        os.chdir(repo_path)
+
+
 def _build(args):
     """
     The entry point for the build toolkit
@@ -43,26 +75,8 @@ def _build(args):
     # branch
     #
 
-    def _fail_or_pass(result):
-        if not result:
-            sys.exit(1)
-
     if args.branch or args.tag:
-        repo_path = os.path.join(
-            os.environ.get(constants.FLAUNCH_DEV_DIR, os.getcwd()),
-            args.package
-        )
-
-        if not os.path.exists(repo_path):
-            if args.git:
-                _fail_or_pass(gitutil.clone_repo(args.git))
-            else:
-                logging.error('Cannot find repository! (include --git with link if needed)')
-                sys.exit(1)
-            os.chdir(args.package) # Not foolproof
-        else:
-            os.chdir(repo_path)
-
+        _go_to_repo(args)
         _fail_or_pass(gitutil.fetch())
         _fail_or_pass(gitutil.stash())
         _fail_or_pass(gitutil.checkout(branch=args.branch, tag=args.tag))
@@ -70,6 +84,26 @@ def _build(args):
     manager = manage.BuildManager.get_manager(args.package, args)
     manager.run_build()
     logging.info('Build Complete')
+
+
+def _prep(args):
+    """
+    The first process in a full-scale deployment. This is used to tag our content for
+    a specific point across platforms. 
+    :param args: The args namespace object our parser returns
+    :return: None    
+    """
+    logging.info('fbuild prep command still in development. Try again later.')
+    return
+
+    _go_to_repo(args)
+    _fail_or_pass(gitutil.fetch())
+
+    if args.branch:
+        code_hash_ = gitutil.git_hash(args.branch)
+
+    # __START_HERE_ISH__ -> Get the tags procing up nicely
+    # This command can eventually lead to remote funtimes
 
 
 def _deploy(args):
@@ -181,6 +215,17 @@ def build_parser():
     builder.add_argument('-b', '--branch', help='Branch to checkout')
     builder.add_argument('-g', '--git', help='Custom git link to pull from')
     builder.set_defaults(func=_build)
+
+    # -- Deploy Prep Management
+    prepper = subparsers.add_parser('prep', description='Utility kit for prepparing a package for deployment and release')
+    _fill_parser_with_defaults(prepper)
+    prepper.add_argument('package', help='The package that we\'re deploying')
+    prepper.add_argument('version', help='The version that we\'re deploying (hint: This is the git tag that\'s created)')
+    prepper.add_argument('-b', '--branch', help='The branch to create our tag from', default='origin/master')
+    prepper.add_argument('-s', '--hash', help='A specific commit hash to use for our tag')
+    builder.add_argument('-g', '--git', help='Custom git link to pull from')
+    prepper.set_defaults(func=_prep)
+
 
     # -- Deploy Management
     deployer = subparsers.add_parser('deploy', description='Deployment toolkit')

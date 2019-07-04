@@ -1,9 +1,11 @@
 """
 git things
 """
+from __future__ import absolute_import
+
+import subprocess
 
 from . import utils
-
 
 def clone_repo(git_url):
     """
@@ -61,3 +63,16 @@ def checkout(branch=None, tag=None):
         logging.error('Failed to checkout {}'.format(branch or tag))
         return False
     return True
+
+
+def git_hash(branch_or_tag):
+    """
+    Obtain the git hash for a specific branch or tag
+    :param branch_or_tag: str
+    :return: str
+    """
+    try:
+        data = subprocess.check_output(['git', 'rev-parse', branch_or_tag])
+    except subprocess.CallProcessError as e:
+        logging.critical('Failed to locate proper hash for {}'.format(branch_or_tag))
+    return data.decode('utf-8').strip()
