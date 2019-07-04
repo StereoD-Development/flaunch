@@ -223,7 +223,7 @@ def build_parser():
     prepper.add_argument('version', help='The version that we\'re deploying (hint: This is the git tag that\'s created)')
     prepper.add_argument('-b', '--branch', help='The branch to create our tag from', default='origin/master')
     prepper.add_argument('-s', '--hash', help='A specific commit hash to use for our tag')
-    builder.add_argument('-g', '--git', help='Custom git link to pull from')
+    prepper.add_argument('-g', '--git', help='Custom git link to pull from')
     prepper.set_defaults(func=_prep)
 
 

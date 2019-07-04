@@ -7,7 +7,7 @@ import sys
 import json
 import socket
 import threading
-from src.common import utils
+from common import utils
 
 # -- Python 2 and 3 have most of the same bells and whistles
 # for this but 
