@@ -4,7 +4,7 @@
 To `fbuild`, deployment is the process of propagating files to a server or globally for possible testing, consumption via development tools, or general requirements.
 
 ## What _isn't_ Deployment?
-"Deployed" files are simply available at a file system level but **_not_** explicitly available to a typical user. `flaunch` uses Flux's back end to understand what files are available at any given time and because of this, we can deploy files safely without worry that users may be pulling them out of turn or before other, dependent, components are released. 
+"Deployed" files are simply available at a file system level but **_not_** explicitly available to a typical user. `flaunch` uses Flux's back end to understand what files are available at any given time and because of this, we can deploy files safely without worry that users may be pulling them out of turn or before other, dependent, components are released.
 
 ## What is Release?
 Release is the act of actually making the product available to the end user by alerting Flux's back end that it's ready for consumption. Because Flux is replicated, all users will gain access to the functionality at nearly the same time and there is no need to move any files once "released".
