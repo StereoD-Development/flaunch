@@ -76,6 +76,18 @@ func__install_path_to_predeploy(predeploy_version):
   - ":MOVE --make-dirs {package_zip} {_predeploy_folder}/{predeploy_version}/"
   - ":CD --pop"
 
+prep:
+  #
+  # The only section that doesn't have a pre and post command set, the prep
+  # station is for handling possible spin up of build/deployment jobs
+  # elsewhere
+  #
+
+  commands:
+    # Jenkins build/deployment procedure
+    - ['--jenkins', ":JENKINS submit {version}"]
+    - ['--jenkins-deploy', ":JENKINS submit {version} --deploy"]
+
 
 build:
 

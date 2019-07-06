@@ -65,5 +65,10 @@ raw:
       - ":COPY --force /home/mmccartney/Flux/launch.json ./"
       - ":ZIP ../{fpack} -f ./ -e sdpm.rc -e sdpm.tar.gz -e sdpm.zip -n"
       - ":CD {package_base}"
-      - ["--windows", ":COPY --force {fpack} /mnt/vfxbox/_FLUX/flaunch_packages/Flux/Windows/", ":COPY --force {fpack} /mnt/vfxbox/_FLUX/flaunch_packages/Flux/Linux/"]
+      - ["--windows",
+          # True:
+          ":COPY --force {fpack} /mnt/vfxbox/_FLUX/flaunch_packages/Flux/Windows/",
+          # False:
+          ":COPY --force {fpack} /mnt/vfxbox/_FLUX/flaunch_packages/Flux/Linux/"
+        ]
       - ":DEL {fpack}" # Don't need after copy

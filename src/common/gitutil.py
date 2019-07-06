@@ -75,4 +75,32 @@ def git_hash(branch_or_tag):
         data = subprocess.check_output(['git', 'rev-parse', branch_or_tag])
     except subprocess.CallProcessError as e:
         logging.critical('Failed to locate proper hash for {}'.format(branch_or_tag))
+        raise
     return data.decode('utf-8').strip()
+
+
+def tag(tag_name, code_hash):
+    """
+    Tag the code at a specific commit hash .
+    :param code_hash: The hash that we're placing this tag at
+    :return: bool
+    """
+    addon = [code_hash] if code_hash else []
+
+    if utils.run_(['git', 'tag', '-a', tag_name] + addon) != 0:
+        logging.error('Failed to tag {}'.format(tag_name))
+        return False
+    return True
+
+
+def push_tag(tag_name, remote='origin'):
+    """
+    Push the tag to our git repository
+    :param tag_name: The verison that we're pushing up
+    :param remote: The remote to use when pushing
+    :return: bool
+    """
+    if utils.run_(['git', 'push', remote, tag_name]) != 0:
+        logging.error('Failed to push tag {}'.format(tag_name))
+        return False
+    return True

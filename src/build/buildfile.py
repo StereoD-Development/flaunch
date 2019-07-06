@@ -200,7 +200,7 @@ class BuildFile(_AbstractFLaunchData):
 
         for plugin in include:
             plugin_filepath = utils.path_ancestor(os.path.abspath(__file__), 3)
-            plugin_filepath = os.path.join(plugin_filepath, 'plugins', plugin + '.yaml')
+            plugin_filepath = os.path.join(plugin_filepath, 'templates', plugin + '.yaml')
 
             if not os.path.isfile(plugin_filepath):
                 logging.error("Invalid plugin: {}".format(plugin_filepath))

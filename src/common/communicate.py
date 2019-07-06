@@ -208,6 +208,11 @@ class ConnectionManager(object):
 
 
 def default_headers():
+    """
+    Default headers we pass in most requests or at least use as a
+    starting point
+    :return: dict
+    """
     return {
         'Accept' : 'application/json',
         'X-Flux-Facility' : FLUX_FACILITY,
