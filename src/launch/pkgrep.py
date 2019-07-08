@@ -37,7 +37,7 @@ def _download(info, dest, filename):
         path = unquote(info['uri']).replace('file:///', '', 1)
         if not os.path.exists(path):
             attempt = '/' + path
-            if not os.path.exists(attempt)
+            if not os.path.exists(attempt):
                 logging.critical(
                     ('Cannot download {} - Possible unknown '
                      'version or missing files!').format(path)
