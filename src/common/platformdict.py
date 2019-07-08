@@ -95,7 +95,7 @@ class PlatformDict(object):
     def __get_dict_entry(self, val):
         if self.platform in val:
             val = val[self.platform]
-        elif self.is_unix and val in ('unix', 'Unix'):
+        elif self.is_unix and any(i in val for i in ('unix', 'Unix')):
             val = val[('unix' if 'unix' in val else 'Unix')]
         else:
             val = val.get(self.platform.lower(), val)
