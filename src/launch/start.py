@@ -10,6 +10,7 @@ import sys
 import platform
 import logging
 import argparse
+import shlex
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -174,7 +175,7 @@ def launch_application(args):
         if not arguments and this_app.default_args():
             arguments = this_app.default_args()
 
-    utils.run_([executable] + arguments, env, args.verbose)
+    utils.run_(shlex.split(executable) + arguments, env, args.verbose)
     return 0
 
 
