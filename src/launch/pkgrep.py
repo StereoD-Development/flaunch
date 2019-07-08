@@ -36,11 +36,14 @@ def _download(info, dest, filename):
 
         path = unquote(info['uri']).replace('file:///', '', 1)
         if not os.path.exists(path):
-            logging.critical(
-                ('Cannot download {} - Possible unknown '
-                 'version or missing files!').format(path)
-            )
-            sys.exit(1)
+            attempt = '/' + path
+            if not os.path.exists(attempt)
+                logging.critical(
+                    ('Cannot download {} - Possible unknown '
+                     'version or missing files!').format(path)
+                )
+                sys.exit(1)
+            path = attempt
 
         logging.debug("Copy: " + path)
         logging.debug("To: " + arch_path)
@@ -53,9 +56,8 @@ def _extract(zipfile_path):
     :param zipfile_path: The path to a .zip file that we're unloading
     :return: None
     """
-    zip_ref = zipfile.ZipFile(zipfile_path, 'r')
-    zip_ref.extractall(os.path.dirname(zipfile_path))
-    zip_ref.close()
+    from common import compression
+    compression.unzip_files(zipfile_path, output=os.path.dirname(zipfile_path))
 
 
 def _get_package_and_version(package):

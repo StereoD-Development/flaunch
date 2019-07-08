@@ -10,11 +10,14 @@ import logging
 import traceback
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from build import manage
 from build import command
 from build import compose
 from build import deploy
+from build import prep
 from build import raw
+
 from common import constants
 from common import gitutil
 from common import utils
@@ -89,21 +92,35 @@ def _build(args):
 def _prep(args):
     """
     The first process in a full-scale deployment. This is used to tag our content for
-    a specific point across platforms. 
+    a specific point across platforms which can then be used to trigger a full build
+    and deploy procedure across the gamut.
+
+    examples:
+
+        fbuild prep Helios 1.2.0
+        fbuild prep Helios 1.2.0 --jenkins
+        fbuild prep Helios 1.2.0 --jenkins-deploy
+
     :param args: The args namespace object our parser returns
     :return: None    
     """
-    logging.info('fbuild prep command still in development. Try again later.')
-    return
-
     _go_to_repo(args)
     _fail_or_pass(gitutil.fetch())
 
-    if args.branch:
-        code_hash_ = gitutil.git_hash(args.branch)
+    code_hash = None
+    if args.hash:
+        code_hash = args.hash
+    elif args.branch:
+        code_hash = gitutil.git_hash(args.branch)
 
-    # __START_HERE_ISH__ -> Get the tags procing up nicely
-    # This command can eventually lead to remote funtimes
+    logging.info('Tagging: {}'.format(args.version))
+    _fail_or_pass(gitutil.tag(args.version, code_hash))
+    _fail_or_pass(gitutil.push_tag(args.version, args.remote))
+
+    # If we've made it here, we can assume we've taged the 
+    manager = prep.PrepManager.get_manager(args.package, args)
+    manager.run_prep()
+    logging.info('Prep Complete')
 
 
 def _deploy(args):
@@ -221,9 +238,10 @@ def build_parser():
     _fill_parser_with_defaults(prepper)
     prepper.add_argument('package', help='The package that we\'re deploying')
     prepper.add_argument('version', help='The version that we\'re deploying (hint: This is the git tag that\'s created)')
-    prepper.add_argument('-b', '--branch', help='The branch to create our tag from', default='origin/master')
+    prepper.add_argument('-b', '--branch', help='The branch to create our tag from')
     prepper.add_argument('-s', '--hash', help='A specific commit hash to use for our tag')
-    builder.add_argument('-g', '--git', help='Custom git link to pull from')
+    prepper.add_argument('-g', '--git', help='Custom git link to pull from')
+    prepper.add_argument('-r', '--remote', help='Remote to use (default is origin)', default='origin')
     prepper.set_defaults(func=_prep)
 
 
@@ -240,7 +258,7 @@ def build_parser():
     )
     deployer.add_argument('-d', '--destination', action='append', help='Facility codes to transfer to (e.g. tor, mad, etc.)')
     deployer.add_argument('-e', '--exclude', action='append', help='Facility codes to not transfer to')
-    deployer.add_argument('-p', '--platform', action='append', help='Supply specific platforms to trasnfer for')
+    deployer.add_argument('-p', '--platform', action='append', help='Supply specific platforms to transfer for')
     deployer.add_argument('-c', '--custom', nargs=2, metavar=('YAML', 'SOURCE'), help='Custom yaml file and source directory location')
     deployer.set_defaults(func=_deploy)
 

@@ -51,3 +51,24 @@ raw:
     help: "An example of a raw command"
     commands:
       - ":PRINT Example command that does some work with {package} in {source_dir}"
+
+  deploy_mcclane_temp:
+    help: "Use sdpm version of mcclane to prep for madrid"
+    arguments:
+      - ["version_a", "The sdpm version string"]
+      - ["version_b", "The sdpm hotfix"]
+    commands:
+      - ":SET /mnt/isilon2/s3d/resources/sw/packages/flux/{version_a}/{version_b} package_base"
+      - ":SET Flux.{version_a}.{version_b}.zip fpack"
+      - ["--windows", ":SET AMD64-Windows arch", ":SET x86_64-Linux arch"]
+      - ":CD {package_base}/{arch}"
+      - ":COPY --force /home/mmccartney/Flux/launch.json ./"
+      - ":ZIP ../{fpack} -f ./ -e sdpm.rc -e sdpm.tar.gz -e sdpm.zip -n"
+      - ":CD {package_base}"
+      - ["--windows",
+          # True:
+          ":COPY --force {fpack} /mnt/vfxbox/_FLUX/flaunch_packages/Flux/Windows/",
+          # False:
+          ":COPY --force {fpack} /mnt/vfxbox/_FLUX/flaunch_packages/Flux/Linux/"
+        ]
+      - ":DEL {fpack}" # Don't need after copy

@@ -299,3 +299,34 @@ def temp_dir(change_dir=True):
             yield dirpath
     else:
         yield dirpath
+
+
+def load_from_source(filepath, name=None):
+    """
+    Obligatory Python 2/3 source file loading mechanism
+    :param filepath: path to a loadable source file
+    :param name: name to give this module (will pick one if None)
+    :return: Python Module
+    """
+    if name is None:
+        name = os.path.basename(filepath).replace('.py', '')
+
+        # In the event we have a repeat module name
+        count = 0
+        while name in sys.modules:
+            name += str(count)
+            count += 1
+
+    if PY3:
+        if sys.version_info[2] >= 5:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(name, filepath)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        else:
+            from importlib.machinery import SourceFileLoader
+            return SourceFileLoader(name, filepath).load_module()
+    else:
+        import imp
+        return imp.load_source(name, filepath)
