@@ -195,7 +195,8 @@ class BuildFile(_AbstractFLaunchData):
         if not isinstance(include, (list, tuple)):
             raise TypeError('build.yaml -> include: must be a list of plugins')
 
-        if self._name != 'global':
+        if len(include) == 0 and self._name != 'global':
+            # Add global to the root list
             include.insert(0, 'global')
 
         for plugin in include:
@@ -208,6 +209,7 @@ class BuildFile(_AbstractFLaunchData):
 
             # FIXME: Need to check for cyclic dependencies
             plugin_bf = BuildFile(self.package, plugin_filepath, manager=self._manager, name=plugin)
+            self._templates.update(plugin_bf.included_templates)
             self._templates[plugin] = plugin_bf
 
             self._data = PlatformDict(

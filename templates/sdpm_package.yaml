@@ -102,6 +102,7 @@ build:
   #
   post_build:
     - ["--sdpm", ":FUNC sdpm_dev_build()"]
+    - ":SUPER global.build.post_build"
 
 
 raw:
