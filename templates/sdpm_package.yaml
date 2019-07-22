@@ -31,9 +31,9 @@ props:
   sdpm_rc_file: |
     import os
     class SdpmRc(SdpmRcBase):
-      """ Default SDPM wrapper for fbuild """
-      def pathEnv(self):
-        return { "PATH": [self._path] }
+        """ Default SDPM wrapper for fbuild """
+        def pathEnv(self):
+            return { "PATH": [self._path] }
 
 
 #
@@ -46,6 +46,8 @@ func__sdpm_dev_build():
   - ":MKDIR -s {_sdpm_dev_build}"
   - ":FUNC get_complete_files_path()"
   - ":COPY -f {complete_files}/* {_sdpm_dev_build} -x launch.json"
+  # - ":ZIP {_sdpm_dev_build}/../sdpm.zip -f {_sdpm_dev_build}/*"
+  # - ":MOVE --force {_sdpm_dev_build}/../sdpm.zip {_sdpm_dev_build}/sdpm.zip"
   - ":WRITE {sdpm_rc_file} {_sdpm_dev_build}/sdpm.rc"
 
 
