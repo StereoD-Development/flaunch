@@ -27,7 +27,7 @@ def _zip_symlink(filepath, zippath, zfile):
     """
     assert os.path.islink(filepath)
     linkpath = os.readlink(filepath)
-    print ("Linkpath: ", linkpath)
+
     # 0 is windows, 3 is unix (e.g., mac, linux) [and 1 is Amiga!]
     createsystem = 0 if sys.platform.startswith('win') else 3 
 
@@ -42,6 +42,7 @@ def _zip_symlink(filepath, zippath, zfile):
     zippath = os.path.normpath(zippath)
     zippath = zippath.lstrip(os.sep)
     zippath = zippath.replace(os.sep, '/')
+   
     newinfo = zipfile.ZipInfo()
     newinfo.filename      = zippath
     newinfo.date_time     = ziptime

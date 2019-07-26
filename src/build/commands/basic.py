@@ -80,8 +80,9 @@ class CopyCommand(_BuildCommand):
                 root = root[:-1]
 
         destination = self.data.destination
-        if len(data) > 1 and not os.path.exists(destination):
-            os.makedirs(destination)
+        if len(data) > 1:
+            if not os.path.exists(destination):
+                os.makedirs(destination)
 
         elif os.path.isdir(self.data.destination) and os.path.isfile(data[0]):
             destination = os.path.join(self.data.destination, os.path.basename(data[0]))

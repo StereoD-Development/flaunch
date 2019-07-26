@@ -31,9 +31,9 @@ props:
   sdpm_rc_file: |
     import os
     class SdpmRc(SdpmRcBase):
-      """ Default SDPM wrapper for fbuild """
-      def pathEnv(self):
-        return { "PATH": [self._path] }
+        """ Default SDPM wrapper for fbuild """
+        def pathEnv(self):
+            return { "PATH": [self._path] }
 
 
 #
@@ -46,6 +46,8 @@ func__sdpm_dev_build():
   - ":MKDIR -s {_sdpm_dev_build}"
   - ":FUNC get_complete_files_path()"
   - ":COPY -f {complete_files}/* {_sdpm_dev_build} -x launch.json"
+  # - ":ZIP {_sdpm_dev_build}/../sdpm.zip -f {_sdpm_dev_build}/*"
+  # - ":MOVE --force {_sdpm_dev_build}/../sdpm.zip {_sdpm_dev_build}/sdpm.zip"
   - ":WRITE {sdpm_rc_file} {_sdpm_dev_build}/sdpm.rc"
 
 
@@ -87,8 +89,9 @@ func__sdpm_deploy_flaunch_package(package_path, sdpm_verison, sdpm_fix_number):
 #
 func__sdpm_transfer_to_facilities(sdpm_full_version):
   - ':SET "verbose localize env prepend python/2.7.2 localize launch TransferTools -n signiant basic" sdpm_transfer_command'
-  - "sdpm {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{package}/{sdpm_full_version} tor bur"
-  - "sdpm {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{package}/{sdpm_full_version} tor pun"
+  - ':SET "python {_sdpm_platform_server}/s3d/resources/sw/scripts/sdpm.py" sdpm_command'
+  - "{sdpm_command...} {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{package}/{sdpm_full_version} tor bur"
+  - "{sdpm_command...} {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{package}/{sdpm_full_version} tor pun"
  
 
 build:
@@ -102,6 +105,7 @@ build:
   #
   post_build:
     - ["--sdpm", ":FUNC sdpm_dev_build()"]
+    - ":SUPER global.build.post_build"
 
 
 raw:
@@ -138,7 +142,7 @@ raw:
       moment this is locked to Toronto as the source only)
 
     arguments:
-      - [sdpm_full_version, Major.Minor.Subminor/#### version to transfer, '[0-9]+\.[0-9]+\.[0-9]+\/[0-9]{4}']
+      - [sdpm_full_version, "Major.Minor.Subminor/#### version to transfer", '[0-9]+\.[0-9]+\.[0-9]+\/[0-9]{4}']
 
     commands:
       - ":FUNC sdpm_transfer_to_facilities({sdpm_full_version})"
