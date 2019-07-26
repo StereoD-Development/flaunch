@@ -52,23 +52,29 @@ raw:
     commands:
       - ":PRINT Example command that does some work with {package} in {source_dir}"
 
-  deploy_mcclane_temp:
+  deploy_pkg_temp:
     help: "Use sdpm version of mcclane to prep for madrid"
     arguments:
-      - ["version_a", "The sdpm version string"]
-      - ["version_b", "The sdpm hotfix"]
+      - ["version", "The sdpm version string"]
+      - ["fix", "The sdpm hotfix"]
+      - ["pkg", "The name of the sdpm package"]
     commands:
-      - ":SET /mnt/isilon2/s3d/resources/sw/packages/flux/{version_a}/{version_b} package_base"
-      - ":SET Flux.{version_a}.{version_b}.zip fpack"
+      - ":SET /mnt/isilon2/s3d/resources/sw/packages/{pkg}/{version}/{fix} package_base"
+      - clause: "'{pkg}' == 'FLUX'"
+        commands: ":SET Flux.{version}.{fix}.zip fpack"
+      - clause: "'{pkg}' != 'Flux'"
+        commands: ":SET {pkg}.{version}.{fix}.zip fpack"
       - ["--windows", ":SET AMD64-Windows arch", ":SET x86_64-Linux arch"]
       - ":CD {package_base}/{arch}"
-      - ":COPY --force /home/mmccartney/Flux/launch.json ./"
+      - clause: "'{pkg}' == 'flux'"
+        commands: ":COPY --force /home/mmccartney/Flux/launch.json ./"
       - ":ZIP ../{fpack} -f ./ -e sdpm.rc -e sdpm.tar.gz -e sdpm.zip -n"
       - ":CD {package_base}"
-      - ["--windows",
-          # True:
-          ":COPY --force {fpack} /mnt/vfxbox/_FLUX/flaunch_packages/Flux/Windows/",
-          # False:
-          ":COPY --force {fpack} /mnt/vfxbox/_FLUX/flaunch_packages/Flux/Linux/"
-        ]
+      - ":COPY --force {fpack} /mnt/vfxbox/_FLUX/flaunch_packages/Flux/{platform}/"
+      - ["--winlin", [
+          { clause : "'{platform}' == 'Windows'",
+            commands : ":COPY --force {fpack} /mnt/vfxbox/_FLUX/flaunch_packages/Flux/Linux/" },
+          { clause : "'{platform}' == 'Linux'",
+            commands : ":COPY --force {fpack} /mnt/vfxbox/_FLUX/flaunch_packages/Flux/Windows/" }
+        ]]
       - ":DEL {fpack}" # Don't need after copy

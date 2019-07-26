@@ -172,7 +172,9 @@ class BuildCommandParser(object):
                         python_to_eval = self._build_file.expand(command_info_raw['clause'])
                         logging.debug('Evaluating: {}'.format(python_to_eval))
 
-                        is_command = python_to_eval[:python_to_eval.index('(')] in local_commands
+                        is_command = False
+                        if '(' in python_to_eval:
+                            is_command = python_to_eval[:python_to_eval.index('(')] in local_commands
                         if is_command and python_to_eval.endswith(')'):
                             # All of the quick commands take the build file as the last arg
                             python_to_eval = python_to_eval[:-1] + ', build_file)'
@@ -180,7 +182,7 @@ class BuildCommandParser(object):
 
                         local_commands['build_file'] = self._build_file
                         if not (eval(python_to_eval, local_commands)):
-                            return # - Didn't work
+                            continue # - Didn't work
 
                     if isinstance(commands_from_dict, (list, tuple)):
                         if self._exec_internal(commands_from_dict) == _BuildCommand.RETURN_COMMAND:
