@@ -171,27 +171,16 @@ def _raw(args):
     manager = raw.RawCommandManager.get_manager(args.package, args)
     if args.list_commands:
         print ("Raw commands for: {}".format(args.package))
-        data = manager.all_commmands()
-        for comm, info in sorted(data.items()):
 
-            help_, args = info
-
-            print ("-----------------------------------------------")
-            print ('-', comm + ':')
-            for l in help_.strip().split('\n'):
-                print ("    ", l)
-
-            print ("     - Arguments:")
-            for arg in args:
-                printme = arg
-                if isinstance(arg, list):
-                    if len(arg) > 1:
-                        printme = arg[0] + ': ' + arg[1]
-                    else:
-                        printme = arg[0]
-                print ("        ", printme)
+        parsers = manager.all_commmand_parsers()
+        for parser in sorted(parsers, key=lambda x: x.prog):
 
             print ("")
+            print ("-----------------------------------------------")
+            print ("")
+            print (">>> COMMAND: {}".format(parser.prog))
+            parser.print_help()
+
     else:
         if args.command_name is None:
             print ("Please provide a command to run! (use \"fbuild {}\" for available commands)".format(

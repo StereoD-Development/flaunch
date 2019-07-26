@@ -210,7 +210,9 @@ We also support simply passing the arguments as you would in any other language
 When working with COMMAND_LISTS and functions there may be a scenario where you need to return from the current scope
 
 # Comand Expansion (... Notation)
-Occasionally, we have to handle command line arguments in a list fashion. For example:
+Occasionally, we have to handle command line arguments in a list fashion however, by default, any expanded varable is considered a single argument (`shlex.split()` is run on the raw, unexpanded command which holds things like paths together but whitespace out of quote will delimit).
+
+For example:
 
 ```yaml
 props:
@@ -221,7 +223,7 @@ props:
     - "mytool {some_arguments} {my_filename}.foo"
 ```
 
-When running those commands, the terminal would recieve:
+All seems well but when running those commands, the terminal would recieve:
 ```
 ["mytool"] ["-t foo -vvv --another-arg \"blarg bloog\""] ["the_filename.foo"]
 ```

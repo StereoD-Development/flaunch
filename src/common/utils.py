@@ -259,7 +259,7 @@ def levenshtein(s1, s2):
     return previous_row[-1]
 
 
-def cli_name(arg):
+def cli_name(arg, ignore_prefix = False):
     """
     Convert an argument name into the cli equivalent
     
@@ -268,7 +268,8 @@ def cli_name(arg):
     :param arg: str to convert
     :return: str
     """
-    return '--' + arg.replace('_', '-')
+    prefix = '--' if (not arg.startswith('--') and not ignore_prefix) else ''
+    return prefix + arg.replace('_', '-')
 
 
 @contextmanager

@@ -52,29 +52,40 @@ raw:
     commands:
       - ":PRINT Example command that does some work with {package} in {source_dir}"
 
-  deploy_pkg_temp:
-    help: "Use sdpm version of mcclane to prep for madrid"
+
+  deploy_mad_temp:
+    help: |
+      Use an sdpm version of a package and deploy to Madrid. This is currently
+      only runnable via the Mr. Fusion box (10.1.61.28) on the internal network
+      as it requires the a vfxbox mount.
+    
+    epilog: |
+      Example: fbuild raw -v flaunch deploy_mad_temp PyFlux 1.0.12 0030
+
     arguments:
-      - ["version", "The sdpm version string"]
-      - ["fix", "The sdpm hotfix"]
-      - ["pkg", "The name of the sdpm package"]
+      - ["pkg",     "The name of the sdpm package" ]
+      - ["version", "The sdpm version string", "\\d.\\d.\\d" ]
+      - ["fix",     "The sdpm hotfix", "[0-9]{4}"]
+      - ["--ljson", "Optional launch.json file (required if no launch.json is in sdpm path)", .*(/|\\)launch\.json$ ]
+
+    flags:
+      - ["winlin", "Pass if this package can be deployed for both Win and Linux at the same time."]
+
     commands:
       - ":SET /mnt/isilon2/s3d/resources/sw/packages/{pkg}/{version}/{fix} package_base"
-      - clause: "'{pkg}' == 'FLUX'"
-        commands: ":SET Flux.{version}.{fix}.zip fpack"
-      - clause: "'{pkg}' != 'Flux'"
-        commands: ":SET {pkg}.{version}.{fix}.zip fpack"
+      - clause: "'{pkg}' == 'flux'"
+        commands: ":SET Flux {pkg}"
+      - ":SET {pkg}.{version}.{fix}.zip fpack"
+      - ":SET /mnt/vfxbox/_FLUX/flaunch_packages/{pkg} vfxbox_repo"
       - ["--windows", ":SET AMD64-Windows arch", ":SET x86_64-Linux arch"]
       - ":CD {package_base}/{arch}"
-      - clause: "'{pkg}' == 'flux'"
-        commands: ":COPY --force /home/mmccartney/Flux/launch.json ./"
+      - ["--ljson", ":COPY --force {ljson} ./"]
       - ":ZIP ../{fpack} -f ./ -e sdpm.rc -e sdpm.tar.gz -e sdpm.zip -n"
       - ":CD {package_base}"
-      - ":COPY --force {fpack} /mnt/vfxbox/_FLUX/flaunch_packages/Flux/{platform}/"
-      - ["--winlin", [
-          { clause : "'{platform}' == 'Windows'",
-            commands : ":COPY --force {fpack} /mnt/vfxbox/_FLUX/flaunch_packages/Flux/Linux/" },
-          { clause : "'{platform}' == 'Linux'",
-            commands : ":COPY --force {fpack} /mnt/vfxbox/_FLUX/flaunch_packages/Flux/Windows/" }
-        ]]
+      - ":COPY --force {fpack} {vfxbox_repo}/{platform}/"
+      - ["--winlin", {
+            clause : "'{platform}' == 'Windows'",
+            commands : ":COPY --force {fpack} {vfxbox_repo}/Linux/" ,
+            else_commands : ":COPY --force {fpack} {vfxbox_repo}/Windows/" 
+        }]
       - ":DEL {fpack}" # Don't need after copy

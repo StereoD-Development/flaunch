@@ -163,6 +163,7 @@ class BuildCommandParser(object):
                 if isinstance(command_info, (dict, PlatformDict)):
                     command_info_raw = command_info.to_dict()
                     commands_from_dict = command_info_raw.get('commands')
+                    else_commands_from_dict = command_info_raw.get('else_commands')
 
                     #
                     # If we're still a dictionary, then we'll
@@ -182,7 +183,11 @@ class BuildCommandParser(object):
 
                         local_commands['build_file'] = self._build_file
                         if not (eval(python_to_eval, local_commands)):
-                            continue # - Didn't work
+                            if else_commands_from_dict:
+                                # We didn't suceed but we have false conditions
+                                commands_from_dict = else_commands_from_dict
+                            else:
+                                continue # - Nothing to do
 
                     if isinstance(commands_from_dict, (list, tuple)):
                         if self._exec_internal(commands_from_dict) == _BuildCommand.RETURN_COMMAND:
