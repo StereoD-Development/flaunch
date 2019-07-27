@@ -147,11 +147,6 @@ class RawCommandManager(_AbstractManager):
         """
         this_command = self.raw_commands()[self._command]
         parser = self.parser_from_command(name=self._command)
-
-        # if '--docs' in self.additional:
-        #     parser.print_help()
-        #     sys.exit(1)
-
         parsed_args = parser.parse_args(self.additional)
 
         with self.build_file.overload(vars(parsed_args)):

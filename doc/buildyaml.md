@@ -406,54 +406,7 @@ The `include` option is a list so multiple deriving from multiple templates is p
 # Raw Commands
 Intense pipelines often present the desire for automation outside of just building and deployment. For this reason, we've included `raw` commands to help execute arbitrary commands.
 
-```yaml
-# build.yaml
-
-# ...
-
-raw:
-
-  custom_command:
-    help: |
-      A custom command that can be run at any time and even
-      flows through the templating system for ease of use
-
-    arguments:
-      - [foo_bar, A required parameter to be passed in]
-
-    # The COMMAND_LIST to run
-    commands:
-      - ":FUNC a_custom_command_that_takes_an_argument({foo_bar})"
-```
-
-Given the above `raw` command, we can then access it through our `fbuild raw` interface.
-
-```
-~$> fbuild raw MyPackage custom_command --foo-bar foo_bar_value
-```
-
-Because this works in templates, it turns automation procedures into pseudo object oriented design.
-
-## Command Arguments
-The arguments supplied in our `custom_command` through the cli take the same form as those in our `build` and `deploy` command. To learn more, see the [:FUNC documentation about them](./build_commands.md#func-arguments)
-
-> Note: Raw commands that have arguments will fail if any arguments are not supplied in the command
-
-
-## Listing Commands
-At any time, you can get a list of available `raw` commands from your package
-
-```
-~$> fbuild raw MyPackage --list-commands
-Raw commands for: MyPackage
---------------------------------------------------------
-- custom_command:
-    A custom command that can be run at any time and even
-    flows through the templating system for ease of use
-    - Arguments:
-        foo_bar: A required parameter to be passed in
-# ... Additional commands
-```
+[Raw Command Documentation](raw_commands.md).
 
 # Deployment
 This get it's own [document](deploy.md)
