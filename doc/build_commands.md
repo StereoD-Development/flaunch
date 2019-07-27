@@ -23,7 +23,7 @@ Here, we run the first command, which pushes `"This is a Command"` to the stdout
 ## Argument Conditional Commands
 
 ```
-- [ "<required_argument>", COMMAND_LIST ]
+- [ "<required_argument>", COMMAND_LIST (True), COMMAND_LIST (False) ]
 ```
 
 Now, let's say we only wanted to run select commands when a select argument was passed to our command:
@@ -38,12 +38,15 @@ Now, let's say we only wanted to run select commands when a select argument was 
   ]
 ```
 
-This command will always print out `"I'll go no matter what!"` but, unless `--some-arg` is passed to the command line of `fbuild`, it's not going to happen!
+This command will always print out `"I'll go no matter what!"` but, unless `--some-arg` is passed to the command line of `fbuild`, the additional commands are not going to happen!
+
+You'll notice that this command type takes an additional `COMMAND_LIST`. In the event the `<required_argument>` is not present and the additional list is available, those commands will be run. Think of this as a simple `if`/`else` block. 
 
 ## Clause Conditional Commands
 ```
 - clause: <python_evaluated_clause>
   commands: COMMAND_LIST
+  else_commands: COMMAND_LIST
 ```
 
 This is a conditional execution that takes in a string an evaluates it to determine in the branch should be run. This is for basic checks only and cannot run full scripts (see the `:PYTHON` command for that).
@@ -53,6 +56,8 @@ This is a conditional execution that takes in a string an evaluates it to determ
   commands:
     - echo "That env was set"
     # ...
+  else_commands:
+    - echo "That env was _not_ set!"
 ```
 
 This command will use the provided function `"env_set()"` to determine if the environment variable has any value. If it does, then the command list within `commands` is run.
@@ -63,6 +68,12 @@ Currently, the provided functions are:
 * `env_set(var)`: Check if an environment variable is set to anything
 * `prop_set(var)`: Check if our `build.yaml` has a specific property set
 * `file_exists(var)`: Check if a file at a given path exists
+
+```yaml
+- clause: '"{my_variable}" == "the_right_value"'
+  commands: echo "That's the right variable value!"
+```
+This, while getting into [Variable Expansion](buildyaml.md#variable-expansion), will resolve to check two strings value and, if right, will run the following `echo` command. Notice that the `else_commands` is optional.
 
 ## Platform Routing
 Because this is `build.yaml` - _any_ _time_ you want to route based on platform, you are allowed to do so. Command Lists are no exception.
