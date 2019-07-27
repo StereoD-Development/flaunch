@@ -57,7 +57,7 @@ raw:
     help: |
       Use an sdpm version of a package and deploy to Madrid. This is currently
       only runnable via the Mr. Fusion box (10.1.61.28) on the internal network
-      as it requires the a vfxbox mount.
+      as it requires the a vfxbox mount. Note: Make sure you have a launch.json!
     
     epilog: |
       Example: fbuild raw -v flaunch deploy_mad_temp PyFlux 1.0.12 0030
@@ -70,16 +70,35 @@ raw:
 
     flags:
       - ["winlin", "Pass if this package can be deployed for both Win and Linux at the same time."]
+      - ["windows", "Pass to deploy the Windows files (AMD64-Windows)"]
 
     commands:
+
+      #
+      # Prep work and attribute setting
+      #
       - ":SET /mnt/isilon2/s3d/resources/sw/packages/{pkg}/{version}/{fix} package_base"
       - clause: "'{pkg}' == 'flux'"
         commands: ":SET Flux {pkg}"
       - ":SET {pkg}.{version}.{fix}.zip fpack"
       - ":SET /mnt/vfxbox/_FLUX/flaunch_packages/{pkg} vfxbox_repo"
+
+      #
+      # Windows vd. Linux differences
+      #
       - ["--windows", ":SET AMD64-Windows arch", ":SET x86_64-Linux arch"]
       - ":CD {package_base}/{arch}"
+
+      #
+      # launch.json verification
+      #
       - ["--ljson", ":COPY --force {ljson} ./"]
+      - clause: "not file_exists('launch.json')"
+        commands: ":FAIL launch.json not found! Required for Madrid deployment (--ljson)"
+
+      #
+      # Do the heavy lifting
+      #
       - ":ZIP ../{fpack} -f ./ -e sdpm.rc -e sdpm.tar.gz -e sdpm.zip -n"
       - ":CD {package_base}"
       - ":COPY --force {fpack} {vfxbox_repo}/{platform}/"
