@@ -220,6 +220,7 @@ def build_parser():
     builder.add_argument('-t', '--tag', help='Tag to checkout')
     builder.add_argument('-b', '--branch', help='Branch to checkout')
     builder.add_argument('-g', '--git', help='Custom git link to pull from')
+    builder.add_argument('-r', '--build-required', action='store_true', help='Build any dependent packages (must have a build.yaml available)')
     builder.set_defaults(func=_build)
 
     # -- Deploy Prep Management

@@ -60,11 +60,12 @@ The following has occurred:
 * Moves the package to the predeploy location
 
 # Deploy
-To get this into proper deployment position and transfer it around the world, we add the `--transfer` flag. This will:
+To get this into proper deployment position and transfer it around the world, we add the `--transfer` flag.
 
 ```
 ~$> fbuild deploy -v MyPackage 0.0.2 --transfer
 ```
+This will:
 
 * Copy package from predeploy to the final deployment location at the current facility
 * Ship requests to have it moved around the world

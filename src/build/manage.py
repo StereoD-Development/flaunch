@@ -5,6 +5,7 @@ from __future__ import absolute_import
 
 import os
 import sys
+import shlex
 import platform
 import subprocess
 import logging
@@ -65,6 +66,10 @@ class BuildManager(_AbstractManager):
         self.setup_environment()
 
         self.prerequisite_check()
+
+        # -- Check for dependent build
+        if self.arguments.build_required:
+            self._build_required()
 
         self._pre_build_commands()
 
@@ -143,6 +148,40 @@ class BuildManager(_AbstractManager):
         pass # Overload per build manager
 
     # -- Private Methods
+
+    def _build_required(self):
+        """
+        Given the build file, check if we have any packages that we require
+        and, if so, build them with any arguments placed in the build.yaml
+        :return: None
+        """
+        #
+        # Might as well treat it like a native command and avoid any kind
+        # of subprocess junk.
+        #
+        from build.start import build_parser
+
+        logging.debug(':Requirements Build:')
+        with log.log_indent():
+            requirements = self.build_file['requires']
+            if not requirements:
+                logging.info(self.package + ' has no known requirements')
+
+            if not isinstance(requirements, (list, tuple)):
+                requirements = [requirements]
+
+            parser = build_parser()
+            for requirement in requirements:
+                logging.info('Required: {}'.format(requirement))
+                arg_string = 'build {}{}'.format(
+                    '-v ' if log.is_verbose() else '',
+                    requirement
+                )
+                args, addon = parser.parse_known_args(shlex.split(arg_string))
+                args.additional_arguments = addon
+                args.func(args)
+                os.chdir(self.build_dir) # Reset the current dir every time
+
 
     def _pre_build_commands(self):
         """
