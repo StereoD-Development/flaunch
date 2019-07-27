@@ -3,6 +3,7 @@ Logging utility for the build routines
 """
 from __future__ import absolute_import
 
+import os
 import sys
 import logging
 
@@ -42,6 +43,8 @@ def start(verbose, output_file=None):
     global DEFAULT_FORMAT
 
     level = logging.INFO if not verbose else logging.DEBUG
+    if os.environ.get('FLAUNCH_VERBOSE', '').lower() not in ('off', 'none', 'no'):
+        level = logging.DEBUG
 
     logger = logging.getLogger()
     logger.setLevel(level)
