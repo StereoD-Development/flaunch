@@ -82,27 +82,5 @@ optional arguments:
   --addon ADDON  Optional flag for run additional code
 
 -----------------------------------------------
-# ...
+# ... Additional commands (if any) ...
 ```
-
-<!-- ## Command Arguments
-The arguments supplied in our `custom_command` through the cli take the same form as those in our `build` and `deploy` command. To learn more, see the [:FUNC documentation about them](./build_commands.md#func-arguments)
-
-> Note: Raw commands that have arguments will fail if any arguments are not supplied in the command
-
-
-## Listing Commands
-At any time, you can get a list of available `raw` commands from your package
-
-```
-~$> fbuild raw MyPackage --list-commands
-Raw commands for: MyPackage
---------------------------------------------------------
-- custom_command:
-    A custom command that can be run at any time and even
-    flows through the templating system for ease of use
-    - Arguments:
-        foo_bar: A required parameter to be passed in
-# ... Additional commands
-```
- -->

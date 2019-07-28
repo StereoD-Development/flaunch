@@ -60,7 +60,7 @@ raw:
       as it requires the a vfxbox mount. Note: Make sure you have a launch.json!
     
     epilog: |
-      Example: fbuild raw -v flaunch deploy_mad_temp PyFlux 1.0.12 0030
+      Example: fbuild raw -v flaunch deploy_mad_temp PyFlux 1.0.12 0030 --winlin
 
     arguments:
       - ["pkg",     "The name of the sdpm package" ]
