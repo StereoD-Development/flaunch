@@ -292,6 +292,11 @@ def build_parser():
     composer.add_argument('-f', '--force-update', action='store_true', help='Force update if the version exists')
     composer.set_defaults(func=_compose)
 
+    # -- Test toolkit
+    tester = subparsers.add_parser('test', description='Execute tests on a package')
+    _fill_parser_with_defaults(tester)
+    # tester.add_argument('')
+
     return parser
 
 
