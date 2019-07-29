@@ -58,7 +58,7 @@ class _AbstractManager(object):
 
     @property
     def package(self):
-        return self._app
+        return self._build_file.package
 
 
     @property
@@ -201,7 +201,7 @@ class _AbstractManager(object):
                 # http://book.pythontips.com/en/latest/for_-_else.html
                 for c in condition:
                     if c not in self._additional:
-                        break;
+                        break
                 else:
                     # We're good to run!
                     ok = True
