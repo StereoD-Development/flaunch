@@ -36,6 +36,10 @@ class _AbstractFLaunchData(object):
         :param data: PlatformDict that holds onto our data
         """
         self._package = package
+
+        if data['name']:
+            self._package = data['name']
+
         self._path = path.replace('\\', '/')
         self._data = data
         self._original_data = collections.deque()
