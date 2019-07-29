@@ -38,6 +38,6 @@ When using the copy mechanism, you can provide a few keywords to help weed out/i
 Custom Commands
 ---------------
 
-You can also forgo the basic file copy and simply use the ``commands`` keyword to run a [Command List](build_commands.md).
+You can also forgo the basic file copy and simply use the ``commands`` keyword to run a :ref:`Command Lists`.
 
 * ``commands`` : Command List that ``fbuild`` will process over copying files.

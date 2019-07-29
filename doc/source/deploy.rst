@@ -5,7 +5,7 @@ Deployment and Release
 What is Deployment?
 ===================
 
-To `fbuild`, deployment is the process of propagating files to a server or globally for possible testing, consumption via development tools, or general requirements.
+To ``fbuild``, deployment is the process of propagating files to a server or globally for possible testing, consumption via development tools, or general requirements.
 
 What *isn't* Deployment?
 ========================
@@ -42,7 +42,7 @@ This stage acts as the intermediary between build files and deployment. We do a 
 Basic Example
 -------------
 
-Let's take the ``MyPackage`` example we made in the [build docs](buildyaml.md).
+Let's take the ``MyPackage`` example we made in the :ref:`build docs <Building Blocks>`.
 
 
 Let's run a predeploy only command:

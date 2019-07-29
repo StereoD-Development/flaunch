@@ -40,7 +40,7 @@ And inside the `__init__.py` file, we have the following:
       decimal.getcontext().prec = 2
       return decimal.Decimal(0.01) * descimal.Decimal(cents)
 
-Now we want to hook it up to `flaunch` for use with other packages and applications. To do so, let's create a `build.yaml` file on the top directory.
+Now we want to hook it up to ``flaunch`` for use with other packages and applications. To do so, let's create a ``build.yaml`` file on the top directory.
 
 The build.yaml
 --------------
@@ -57,7 +57,7 @@ The build.yaml
 
 .. note::
 
-  That's the absolute minimum build.yaml file there is. Odds are you'll be creating one with a bit more complexity.
+  That's the absolute minimum ``build.yaml`` file there is. Odds are you'll be creating one with a bit more complexity.
 
 So our structure should look like this:
 
@@ -140,7 +140,7 @@ With this, we run ``fbuild MyPackage`` and we shouldn't see the ``WARNING`` anym
 
 .. note::
 
-  Use `fbuild -v <package>` to see all debug information
+  Use ``fbuild -v <package>`` to see all debug information
 
 Run Our Build
 -------------

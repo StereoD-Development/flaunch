@@ -40,7 +40,7 @@ class _BuildCommand(object):
 
     def __repr__(self):
         detail = self.alias if hasattr(self, 'alias') else 'Generic'
-        return "<(BuildCommand, {})".format(detail)
+        return "<BuildCommand({})>".format(detail)
 
 
     def __str__(self):

@@ -400,4 +400,4 @@ To access this command, you'll have to add the file it's in (e.g. ``~/extra_fbui
   # Somewhere in a build.yaml
   - ":MY_EXEC {script_location}/my_script.py -f {output_file_a} -f {output_file_b}"
 
-See the :class:`_BuildCommand` for more.
+See the :class:`_BuildCommand <build.command._BuildCommand>` for more.

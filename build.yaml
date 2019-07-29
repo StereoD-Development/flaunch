@@ -39,9 +39,6 @@ build:
     env:
       PYTHONPATH: ["{path}"]
 
-test:
-
-  ## __START_HERE__
 
 #
 # Section where we can build arbitrary command sequences for

@@ -25,6 +25,20 @@ External_
 Set Your Environment
 ====================
 
+PATH
+----
+
+Set your PATH to include the code location. It's recommended you set this at a user or system level to avoid needing it every time.
+
+.. code-block:: shell
+
+    # Windows
+    C:/> set PATH=%PATH$;<code_repos>/flaunch
+
+    # Unix
+    ~$> export PATH=$PATH:<code_repos>/flaunch
+
+
 Mandatory Vars
 --------------
 
