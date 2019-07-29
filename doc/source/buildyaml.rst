@@ -69,12 +69,16 @@ So our structure should look like this:
 
 Once we have that, and we're looking to build our package, we head to the command line. To use ``fbuild`` you'll want to set the following environment variables:
 
-.. code-block::
+.. code-block:: shell
 
   export FLAUNCH_BUILD_DIR=<default location you want to build packages>
   export FLAUNCH_DEV_DIR=<default location your source files exist in (e.g. your local git repo)>
 
 In this case, ``FLAUNCH_DEV_DIR`` will be set to the directory above the *root* ``MyPackage``.
+
+.. note::
+
+  Check out the :ref:`Set your Environment` section to understand all available environment variables!
 
 These two can be overwritten by the ``fbuild`` command but for now, with them set, we can build our package.
 
@@ -88,7 +92,7 @@ These two can be overwritten by the ``fbuild`` command but for now, with them se
 
 With that we get a bit of information:
 
-.. code-block::
+.. code-block:: shell
 
   [28/05/2019 01:30:59 PM - INFO]: Build Path: C:/repo/build/MyPackage
   [28/05/2019 01:30:59 PM - INFO]: Create Build Directory...

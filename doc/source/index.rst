@@ -7,11 +7,13 @@ fbuild Documentation
    :maxdepth: 2
    :caption: Contents:
 
+   install
    buildyaml
    build_commands
    build_type_basic
    deploy
    raw_commands
+   build_command_api
 
 
 Indices and tables

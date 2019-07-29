@@ -100,7 +100,7 @@ Because this is ``build.yaml`` - *any* *time* you want to route based on platfor
       "echo I AM _NOT_ WINDOWS!"
 
 
-FBuild Commands
+fbuild Commands
 ===============
 
 .. code-block:: shell
@@ -112,7 +112,7 @@ On top of having access to your terminal from the build process, you have a smal
 
 What's more, is command plugins can be made to suit your pipelines specific needs should a problem present itself.
 
-An FBuild Command is used by starting with a ``:`` and followed by the alias to the command itself.
+An fbuild Command is used by starting with a ``:`` and followed by the alias to the command itself.
 
 .. code-block:: yaml
 
@@ -342,3 +342,62 @@ With all of these concepts, and the power of the ``build.yaml`` including Variab
           - ":PRINT Unix compatibility coming soon..."
 
 This might look a little intense, but real world situations usually call for some pretty serious build strategies and the ``build.yaml`` is prepared to get the job done.
+
+Creating Custom Commands
+========================
+
+``fbuild`` offers an API to expand the native abilities of the the custom commands through the ``_BuildCommand`` interface.
+
+A Simple Example
+----------------
+
+.. code-block:: python
+
+  from build.command import _BuildCommand
+
+  class MyExecuteCommand(_BuildCommand):
+      alias = 'MY_EXEC' # Command name
+
+      def description(self):
+          return "Custom execution protocol for my company"
+
+      def populate_parser(self, parser):
+          """
+          Populate a argparse.ArgumentParser with the required
+          arguments.
+          """ 
+          parser.add_argument(
+              'script',
+              help='The file to execute'
+          )
+
+          parser.add_argument(
+              '-f', '--file',
+              action='append',
+              help='An output file to push log to'
+          )
+
+      def run(self, build_file):
+          """
+          The actuall execution takes place here.
+          All parser arguments are stored in self.data
+          """
+          script = self.data.script
+          if not os.path.exists(script):
+              raise RuntimeError('The script "{}" does not exist!'.format(script))
+
+          output_files = self.data.file
+
+          # ... Run the script
+
+
+This is a watered down command for executing a script and possibly routing it to multiple files. The syntax for this would be slightly different depending on your platform but the command list use of this could be made platform agnostic.
+
+To access this command, you'll have to add the file it's in (e.g. ``~/extra_fbuild_commands/foo.py``) to the environment variable ``FLAUNCH_COMMANDS_PATH``. See :ref:`Set Your Environment` for more.
+
+.. code-block:: yaml
+
+  # Somewhere in a build.yaml
+  - ":MY_EXEC {script_location}/my_script.py -f {output_file_a} -f {output_file_b}"
+
+See the :class:`_BuildCommand` for more.

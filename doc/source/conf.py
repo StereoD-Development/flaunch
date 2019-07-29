@@ -25,7 +25,14 @@ author = 'fluxdev'
 release = '1.0.0'
 
 
+
 # -- General configuration ---------------------------------------------------
+
+# We need to import classes for documenting them.
+import sys
+import os
+_root_path = os.path.dirname(os.path.dirname(os.path.abspath('.')))
+sys.path.insert(0, os.path.join(_root_path, 'src'))
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
