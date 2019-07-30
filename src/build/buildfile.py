@@ -37,6 +37,10 @@ class BuildFile(_AbstractFLaunchData):
         self._templates = {}
         self._manager = manager
         self._load()
+        self.add_attribute(
+            '_fbuild_root_dir',
+            os.environ.get('_FLAUNCH_ROOT_DIR')
+        )
 
     def get_manager(self):
         """

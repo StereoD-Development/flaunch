@@ -1,0 +1,58 @@
+#
+# python code coverage utilities
+#
+
+props:
+
+  # -- Coverage specific settings
+
+  #
+  # The script to execute when running coverage. Overload
+  # this to provide a custom test run script. Otherwise,
+  # you can simply add a tests/ folder to your package and
+  # let the predefined coverage tools dot the work for you
+  #
+  coverage_launch: "{_flaunch_root_dir}/test/__init__.py"
+
+  #
+  # By default we scan directories with a pattern when looking for
+  # tests. Overload to augment where your tests are and the pattern
+  # that they follow.
+  #
+  coverage_scan: "{source_dir}/test"
+  coverage_pattern: "test_*.py"
+
+  #
+  # When running with the :COVER command, this will 
+  #
+  coverage_exec: "run_tests"
+
+  coverage_omit: "test/*,*/site-packages/*"
+
+  coverage_html_output: '{flaunch_build_dir}/coverage/html/{package}'
+
+  # For sanity testing below
+  _coverage_launch_base: "{_flaunch_root_dir}/test/__init__.py"
+
+test:
+
+  # We, at a minimum, require coverage.py
+  local_required:
+    - py::coverage # The python module using the py:: directive
+
+  commands:
+
+    #
+    # Check to see if the derived template is using it's own custom
+    # test file.
+    #
+    - clause: '"{_coverage_launch_base}" == "{coverage_launch}"'
+      # This is a default setup that passes the package to our command
+      commands: ':SET "{coverage_launch} {coverage_exec} --arg {package} --arg {coverage_scan} --arg {coverage_pattern}"  _coverage_args'
+      # This is a custom script location without args
+      else_commands: ":SET {coverage_launch} {coverage_exec} _coverage_args"
+
+    - ":COVER {_coverage_args...}"
+
+  post_test:
+    - ["--html", "coverage html -d {coverage_html_output} --omit={coverage_omit}"]

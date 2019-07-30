@@ -228,7 +228,7 @@ class _AbstractFLaunchData(object):
             #
             # Recursive expansion!
             #
-            still_to_resolve = _AbstractFLaunchData.SEARCH_REGEX.findall(val)
+            still_to_resolve = set(_AbstractFLaunchData.SEARCH_REGEX.findall(val))
             unknown = set()
 
             for sub_val in still_to_resolve:

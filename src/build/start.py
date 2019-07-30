@@ -9,12 +9,16 @@ import argparse
 import logging
 import traceback
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.environ['_FLAUNCH_ROOT_DIR'] = os.path.dirname(_root_path).replace('\\', '/')
+
+sys.path.append(_root_path)
 
 from build import manage
 from build import command
 from build import compose
 from build import deploy
+from build import test
 from build import prep
 from build import raw
 
@@ -198,6 +202,15 @@ def _compose(args):
     composer.exec_()
 
 
+def _test(args):
+    """
+    Execute a test
+    """
+    testing_manager = test.TestManager.get_manager(args.package, args)
+    testing_manager.run_tests()
+    logging.info('Testing Complete')
+
+
 def build_parser():
     """
     Construct the parser that handles all things related to building/deploying things
@@ -293,9 +306,12 @@ def build_parser():
     composer.set_defaults(func=_compose)
 
     # -- Test toolkit (TODO)
-    # tester = subparsers.add_parser('test', description='Execute tests on a package')
-    # _fill_parser_with_defaults(tester)
-    # tester.add_argument('')
+    tester = subparsers.add_parser('test', description='Execute tests on a package')
+    _fill_parser_with_defaults(tester)
+    tester.add_argument('-c', '--custom', nargs=2, metavar=('YAML', 'SOURCE'), help='Custom yaml file and source directory location')
+    tester.add_argument('package', help='The package that we\'re running the test on')
+    tester.set_defaults(func=_test)
+    # tester.add_argument()
 
     return parser
 
