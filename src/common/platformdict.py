@@ -14,7 +14,7 @@ class PlatformDict(object):
     """
     Dictionary proxy that auto-routes based on platform.
 
-    .. code-block:: shell
+    .. code-block:: python
 
         my_map = {
             'foo' : {
@@ -33,7 +33,7 @@ class PlatformDict(object):
 
     This can also recurse (although you shouldn't really need it to)
 
-    .. code-block:: shell
+    .. code-block:: python
 
         my_fpd = PlatformDict({
             'foo' : { 'Windows' : { 'bar' : 'Windows' : 'baz' } }
@@ -46,7 +46,7 @@ class PlatformDict(object):
     For unix systems (e.g. platform.system() in ('Linux', 'Darwin')), you
     can use the 'unix' key to represent both.
 
-    .. code-block:: shell
+    .. code-block:: python
 
         my_fpd = PlatformDict({ 'foo' : { 'unix' : 'bar', 'windows': 'baz' } })
 
@@ -56,13 +56,13 @@ class PlatformDict(object):
 
     .. warning::
 
-        This will return None for missing keys rather than raise
-        an error!
+        The ``PlatformDict`` will return None for missing keys rather than
+        raise an error!
 
     Should you need, you can also pass in a platform if you're looking to
     use some cross-platform magic
 
-    .. code-block:: shell
+    .. code-block:: python
 
         my_map = PlatformDict({'foo' : {'unix': 'bar' } }, 'linux')
         print (my_map['foo'])
@@ -84,10 +84,27 @@ class PlatformDict(object):
 
     @property
     def platform(self):
+        """ The current platform this object is utilizing """
         return self._platform
 
 
     def set_platform(self, platform_):
+        """
+        Set the platform manually.
+
+        .. code-block:: python
+
+            mapping = {'get_me' : { 'windows' : 'foo', 'unix' : 'bar' }}
+            pd = PlatformDict(mapping)
+            pd.set_platform('Linux')
+            print (pd['get_me'])
+
+            # Windows
+            >>> bar
+
+
+        :param platform_: The ``platform.system()`` name to set
+        """
         self._platform = platform_
 
 
@@ -152,6 +169,18 @@ class PlatformDict(object):
         """
         Given a simple dictionary of { platform : value, }, return
         the value of the active platform
+
+        .. code-block:: python
+
+            mapping = {'windows' : 'foo', 'unix' : 'bar'}
+            print (PlatformDict.simple(mapping))
+
+            # Windows
+            >>> foo
+
+            # Unix
+            >>> bar
+
         :param dct: dict
         :return: variant (PlatformDict if dictionary is value)
         """
@@ -160,6 +189,7 @@ class PlatformDict(object):
 
     def to_dict(self, copy=False):
         """
+        :param copy: Should we run a deepcopy on the dictionary?
         :return: internal python dict object
         """
         return self.__d if not copy else deepcopy(self.__d)

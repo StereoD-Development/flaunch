@@ -10,7 +10,7 @@ props:
   # The script to execute when running coverage. Overload
   # this to provide a custom test run script. Otherwise,
   # you can simply add a tests/ folder to your package and
-  # let the predefined coverage tools dot the work for you
+  # let the predefined coverage tools do the work for you
   #
   coverage_launch: "{_flaunch_root_dir}/test/__init__.py"
 
@@ -23,12 +23,20 @@ props:
   coverage_pattern: "test_*.py"
 
   #
-  # When running with the :COVER command, this will 
+  # When running with the :COVER command, this is the callable
+  # that will run the coverage on.
   #
   coverage_exec: "run_tests"
 
+  #
+  # When building the coverage output, what file patterns should we
+  # ignore? (, delimited)
+  #
   coverage_omit: "test/*,*/site-packages/*"
 
+  #
+  # Where should the output of our coverage go?
+  #
   coverage_html_output: '{flaunch_build_dir}/coverage/html/{package}'
 
   # For sanity testing below

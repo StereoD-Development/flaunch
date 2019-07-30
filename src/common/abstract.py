@@ -14,6 +14,7 @@ import platform
 import collections
 from contextlib import contextmanager
 
+from .strexpr import _StringExpression
 from .platformdict import PlatformDict
 from . import log
 
@@ -27,7 +28,7 @@ class _AbstractFLaunchData(object):
     Abstract class that handles the expansion of values based
     on various input.
     """
-    SEARCH_REGEX = re.compile(r"\{+[^\{|\s]+\}")
+    SEARCH_REGEX = re.compile(r"\{+[^\{\s]+\}")
 
     def __init__(self, package, path, data):
         """
@@ -97,7 +98,7 @@ class _AbstractFLaunchData(object):
         """
         :return: The directory to this file (str)
         """
-        return os.path.abspath(os.path.dirname(self._path))
+        return os.path.abspath(os.path.dirname(self._path)).replace('\\', '/')
 
 
     @property
@@ -176,6 +177,12 @@ class _AbstractFLaunchData(object):
             for needs_resolve in found_to_resolve:
                 variable = needs_resolve[1:-1]
 
+                expressions = []
+                if '|' in variable:
+                    values = variable.split('|')
+                    variable = values[0]
+                    expressions = values[1:]
+
                 if variable.endswith('...'):
                     if not rtype is list:
                         logging.error('... syntax only allowed for parsed commands.')
@@ -220,6 +227,10 @@ class _AbstractFLaunchData(object):
 
                 elif variable in env:
                     value = value.replace(needs_resolve, env[variable])
+
+                if expressions:
+                    for expr in expressions:
+                        value = _StringExpression.evaluate(expr, value, self)
 
         if found is None:
             found = set()

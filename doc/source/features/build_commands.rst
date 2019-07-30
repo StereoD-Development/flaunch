@@ -132,11 +132,12 @@ An fbuild Command is used by starting with a ``:`` and followed by the alias to 
 
 There's a lot going on there, but hopefully it's pretty straight forward.
 
-1. We fill our ``props:`` with a python script using yaml's multi line notation (``|``)
+1. We fill our ``props:`` with a python script using yaml's multi line notation (\ ``|``\ )
 2. Within the ``commands:`` of our process we have a few tasks
+
     1. ``:READ`` will read a file and push the contents of said file to a ``prop:`` so we can use it in later commands
-    2. ``:PYTHON`` will execute python from a ``prop:`` variable that we've passed.
-        * ``my_script`` is first expanded upon, which resolves the ``{version_information}`` variable within the code
+
+    2. ``:PYTHON`` will execute python from a ``prop:`` variable that we've passed. ``my_script`` is first expanded upon, which resolves the ``{version_information}`` variable within the code
 
 .. note::
 

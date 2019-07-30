@@ -17,8 +17,6 @@ import subprocess
 from contextlib import contextmanager
 
 from . import log
-from .platformdict import PlatformDict
-from .abstract import _AbstractFLaunchData, FLaunchDataError
 
 PY3 = sys.version_info[0] == 3
 SYSTEM = platform.system()
@@ -41,52 +39,6 @@ else:
     def _iter(it):
         return it.iteritems()
     string_types = (str, basestring)
-
-class LaunchJson(_AbstractFLaunchData):
-    """
-    Basic tool for handling launch.json files
-    """
-    def __init__(self, package, path):
-        try:
-            with open(path, 'r') as f:
-                data = PlatformDict(json.load(f))
-        except Exception as e:
-            logging.error(path + ' - invalid json file')
-            raise FLaunchDataError(str(e))
-
-        _AbstractFLaunchData.__init__(self, package, path, data)
-
-
-    def requires(self):
-        """
-        :return: list[str] of required packages
-        """
-        return self['requires'] or []
-
-
-    def extends(self):
-        """
-        :return: str of package this one extends
-        """
-        return self['extends'] or None
-
-
-    def default_args(self):
-        """
-        :return: list of default arguments
-        """
-        return self['default_args'] or None
-
-
-    def set_base(self, base_ljson):
-        """
-        :param base_ljson: The LaunchJson that this instance overrides
-        :return: None
-        """
-        self._path = base_ljson._path
-        self._data = PlatformDict(
-            dict(merge_dicts(base_ljson._data.to_dict(), self._data.to_dict()))
-        )
 
 
 def path_ancestor(path, count):
@@ -331,3 +283,35 @@ def load_from_source(filepath, name=None):
     else:
         import imp
         return imp.load_source(name, filepath)
+
+
+default_build_yaml = """\
+#
+# The {package} build.yaml
+#
+
+# The name of the package
+name: {package}
+
+# The build procedure
+build:
+
+  type: basic
+"""
+
+def initialize_pacakge(args):
+    """
+    Initialize the current directory with a build.yaml
+    """
+    if os.path.exists('build.yaml'):
+        logging.error('build.yaml already exists! Cannot initialize.')
+        sys.exit(1)
+
+    package_name = os.path.basename(os.getcwd())
+
+    with open('build.yaml', 'w') as f:
+        f.write(default_build_yaml.format(
+            package = package_name
+        ))
+
+    logging.info('Initialized - created build.yaml! Welcome to fbuild.')
