@@ -4,6 +4,7 @@ from .basic import *
 from .execute import *
 from .fileio import *
 from .deployment import *
+from .testing import *
 
 # Load any additional plugin commands!
 import os

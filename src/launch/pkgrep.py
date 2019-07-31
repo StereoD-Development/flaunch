@@ -13,6 +13,7 @@ import zipfile
 
 from common import log
 from common import utils
+from common import ljson
 from common import communicate
 
 if utils.PY3:
@@ -88,7 +89,7 @@ def _get_package(package, version=None, info=None, builds=[], force=False):
     :param info: The information block that we use intead of the one coming from atom
     :param builds: locations to search for development builds
     :param force: Boolean - should we redownload pacakges that we already have installed?
-    :return utils.LaunchJson() instance
+    :return ljson.LaunchJson() instance
     """
     logging.debug("Package version: " + (version if version else '<highest>'))
 
@@ -191,7 +192,7 @@ def _get_package(package, version=None, info=None, builds=[], force=False):
                     .format(package)
                 )
 
-    lj = utils.LaunchJson(package, launch_json)
+    lj = ljson.LaunchJson(package, launch_json)
     lj.version_number = info['version']
     return lj
 

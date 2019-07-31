@@ -8,21 +8,11 @@ from common import utils
 
 # -- Command Control
 
-class CommandRegistry(type):
-    """
-    A metaclass that builds a registry automatically
-    """
-    def __init__(cls, name, bases, dct):
-        if not hasattr(cls, '_registry'):
-            cls._registry = {} # Base Class
-        else:
-            cls._registry[cls.alias] = cls
-
-
-@utils.add_metaclass(CommandRegistry)
+@utils.add_metaclass(utils.SimpleRegistry)
 class _BuildCommand(object):
     """
-    Abstract build command. Overload per-command
+    Abstract build command interface. Creating new commands starts with this
+    object.
     """
     alias = None
 
@@ -39,7 +29,7 @@ class _BuildCommand(object):
 
     def __repr__(self):
         detail = self.alias if hasattr(self, 'alias') else 'Generic'
-        return "<(BuildCommand, {})".format(detail)
+        return "<BuildCommand({})>".format(detail)
 
 
     def __str__(self):
@@ -62,13 +52,21 @@ class _BuildCommand(object):
     # -- Virtual Interface
 
     def description(self):
+        """
+        Commands should overload this to provide end developers with some description
+        of the command. This is used when populating the help messages from the cli
+
+        :return: str
+        """
         return 'Generic command processor'
 
     def populate_parser(self, parser):
         """
-        !Override me!
         Get the argument parser this command supports. This way, we can have both
         options as well as other features for each command type.
+
+        :param parser: An ``argparse.ArgumentParser`` that we'll fill out for the command
+        :return: None
         """
         parser.add_argument(
             'args',
@@ -79,13 +77,13 @@ class _BuildCommand(object):
 
     def run(self, build_file):
         """
-        !Override me!
         Execute the comand. By default this just runs the arguments together.
 
-        Overloaded commands (e.g. MOVE, PRINT, etc.) are useful for cutting
+        Overloaded commands (e.g. ``MOVE``, ``PRINT``, etc.) are useful for cutting
         down on the number of platform specific calls that need to be made
 
         :param build_file: BuildFile object that controls this whole process
+        :return: None
         """
         result = utils.run_(self._arguments)
         if result != 0:
@@ -95,6 +93,12 @@ class _BuildCommand(object):
 
     @property
     def data(self):
+        """
+        Property that contains the arguments we've collected and, via argparse,
+        placed then into a Namespace instance.
+
+        :return: ``argparse.Namespace``
+        """
         return self._data
 
 
@@ -102,9 +106,15 @@ class _BuildCommand(object):
     def get_command(cls, alias):
         """
         Based on the alias, validate and return and instance of
-        the _BuildCommand that can process our data.
+        the _BuildCommand that can process our data. This can be used to fetch
+        other commands if required.
+
+        .. code-block:: python
+
+          print_instance = _BuildCommand.get_comand('PRINT')
+
         :param alias: The alias that our command is known by
-        :return: subclass of _BuildCommand
+        :return: subclass of ``_BuildCommand``
         """
         if not alias in cls._registry:
             logging.critical('Unknown Command Alias: "{}"'.format(alias))

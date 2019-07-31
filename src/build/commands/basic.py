@@ -209,7 +209,11 @@ class MoveCommand(_BuildCommand):
             if os.path.exists(dest) and self.data.force:
                 if os.path.isfile(dest):
                     os.unlink(dest)
-            shutil.move(d, dest)
+
+            if os.path.isfile(d) and os.path.isdir(dest):
+                shutil.move(d, os.path.join(dest, os.path.basename(d)))
+            else:
+                shutil.move(d, dest)
 
 
 class PrintCommand(_BuildCommand):
