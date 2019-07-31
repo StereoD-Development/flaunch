@@ -35,6 +35,9 @@ When using the copy mechanism, you can provide a few keywords to help weed out/i
     ``use_gitignore``
         (bool) By default ``fbuild`` will search your source directory for a ``.gitignore`` file and utilize that for finding ignore patterns when copying files. If you want to forgo this behavior, set this to ``false``
 
+    ``launch_json``
+        The launch json dictionary that we want to use (see :ref:`launch.json`)
+
 Custom Commands
 ---------------
 

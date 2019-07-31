@@ -22,6 +22,7 @@ How Does it Work?
 
 ``fbuild`` handles global deployment through the transfer service provided by development as well as some identifiers in the ``build.yaml``
 
+
 Stages
 ======
 
@@ -129,3 +130,15 @@ Sometimes we want to send out a package but not make it the production release. 
 That will create an entry and let users launch explicitly (``flaunch -p MyPackage/0.0.2 ...``) but won't change the currently live release.
 
 This can be combined and used in tandem like a "Release Candidate" procedure (might require the ``--force`` flag)
+
+
+fbuild prep
+===========
+
+There is another command within ``fbuild`` called ``prep`` that can serve as a starting point for full-scale deployment. The preparation process involves creating a tag based on the code you're utilizing and the tag string you give it.
+
+.. code-block:: shell
+
+    ~$> fbuild prep Helios 1.2.0
+
+That, based on the code status you currently have, will generate the proper tag against your current hash. This way, build machines can use the ``--tag`` build mechanism to explicitly build the right code for deployment.

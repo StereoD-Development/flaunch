@@ -172,10 +172,13 @@ class BuildManager(_AbstractManager):
 
             parser = build_parser()
             for requirement in requirements:
-                logging.info('Required: {}'.format(requirement))
+
+                req_expanded = self.build_file.expand(requirement)
+
+                logging.info('Required: {}'.format(req_expanded))
                 arg_string = 'build {}{}'.format(
                     '-v ' if log.is_verbose() else '',
-                    requirement
+                    req_expanded
                 )
                 args, addon = parser.parse_known_args(shlex.split(arg_string))
                 args.additional_arguments = addon

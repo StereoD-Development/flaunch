@@ -14,7 +14,7 @@ class PlatformDict(object):
     """
     Dictionary proxy that auto-routes based on platform.
 
-    :example:
+    .. code-block:: python
 
         my_map = {
             'foo' : {
@@ -33,7 +33,7 @@ class PlatformDict(object):
 
     This can also recurse (although you shouldn't really need it to)
 
-    :example:
+    .. code-block:: python
 
         my_fpd = PlatformDict({
             'foo' : { 'Windows' : { 'bar' : 'Windows' : 'baz' } }
@@ -46,7 +46,7 @@ class PlatformDict(object):
     For unix systems (e.g. platform.system() in ('Linux', 'Darwin')), you
     can use the 'unix' key to represent both.
 
-    :example:
+    .. code-block:: python
 
         my_fpd = PlatformDict({ 'foo' : { 'unix' : 'bar', 'windows': 'baz' } })
 
@@ -54,13 +54,15 @@ class PlatformDict(object):
         # On both Linux and macOS
         >>> bar
 
-    :WARNING: This will return None for missing keys rather than raise
-    an error!
+    .. warning::
+
+        The ``PlatformDict`` will return None for missing keys rather than
+        raise an error!
 
     Should you need, you can also pass in a platform if you're looking to
     use some cross-platform magic
 
-    :example:
+    .. code-block:: python
 
         my_map = PlatformDict({'foo' : {'unix': 'bar' } }, 'linux')
         print (my_map['foo'])
@@ -68,22 +70,41 @@ class PlatformDict(object):
         # On Windows
         >>> bar
 
-    :Note: The platform names are semi-case sensitive. For keywords stick
-    to first capital or all lower (e.g. 'Unix' or 'unix' (NOT 'UNIX'))
+    .. note::
+
+        The platform names are semi-case sensitive. For keywords stick
+        to first capital or all lower (e.g. 'Unix' or 'unix' (NOT 'UNIX'))
     """
     def __init__(self, og_dict = {}, platform_ = _this_platform):
         self._platform = platform_
         if not isinstance(og_dict, dict):
-            raise LaunchJsonError('Build/Launch data must be a dictionary!')
+            raise TypeError('Build/Launch data must be a dictionary!')
         self.__d = og_dict
 
 
     @property
     def platform(self):
+        """ The current platform this object is utilizing """
         return self._platform
 
 
     def set_platform(self, platform_):
+        """
+        Set the platform manually.
+
+        .. code-block:: python
+
+            mapping = {'get_me' : { 'windows' : 'foo', 'unix' : 'bar' }}
+            pd = PlatformDict(mapping)
+            pd.set_platform('Linux')
+            print (pd['get_me'])
+
+            # Windows
+            >>> bar
+
+
+        :param platform_: The ``platform.system()`` name to set
+        """
         self._platform = platform_
 
 
@@ -123,6 +144,18 @@ class PlatformDict(object):
         return str(self.__d)
 
 
+    def __nonzero__(self): # pragma: no cover
+        return self.__bool__()
+
+
+    def __bool__(self):
+        return bool(self.__d)
+
+
+    def __len__(self):
+        return len(self.__d)
+
+
     def __deepcopy__(self, memo=None):
         """
         Make a proper deepcopy of this object.
@@ -136,17 +169,30 @@ class PlatformDict(object):
         """
         Given a simple dictionary of { platform : value, }, return
         the value of the active platform
+
+        .. code-block:: python
+
+            mapping = {'windows' : 'foo', 'unix' : 'bar'}
+            print (PlatformDict.simple(mapping))
+
+            # Windows
+            >>> foo
+
+            # Unix
+            >>> bar
+
         :param dct: dict
         :return: variant (PlatformDict if dictionary is value)
         """
         return cls({'_' : dct})['_']
 
 
-    def to_dict(self):
+    def to_dict(self, copy=False):
         """
+        :param copy: Should we run a deepcopy on the dictionary?
         :return: internal python dict object
         """
-        return self.__d
+        return self.__d if not copy else deepcopy(self.__d)
 
 
     def update(self, other_mapping):
@@ -167,7 +213,7 @@ class PlatformDict(object):
             yield (k,v)
 
 
-    def iteritems(self):
+    def iteritems(self): # pragma: no cover
         """
         Py2 compat
         """

@@ -4,6 +4,7 @@ name: flaunch
 
 include:
   - sdpm_package
+  - coverage
 
 
 # -- Global Properties
@@ -35,7 +36,9 @@ build:
   # We just define the launch.json from here
   #
   launch_json:
-    executable: "{path}/flaunch"
+    executable:
+      windows: "\"{path}/flaunch.bat\""
+      unix: "\"{path}/flaunch\""
     env:
       PYTHONPATH: ["{path}"]
 
@@ -46,12 +49,11 @@ build:
 #
 raw:
 
-  # run with: fbuilc raw flaunch custom_print_example
+  # run with: fbuild raw flaunch custom_print_example
   custom_print_example:
     help: "An example of a raw command"
     commands:
       - ":PRINT Example command that does some work with {package} in {source_dir}"
-
 
   deploy_mad_temp:
     help: |
@@ -65,7 +67,7 @@ raw:
     arguments:
       - ["pkg",     "The name of the sdpm package" ]
       - ["version", "The sdpm version string", "\\d.\\d.\\d" ]
-      - ["fix",     "The sdpm hotfix", "[0-9]{4}"]
+      - ["fix",     "The sdpm hotfix", "[0-9]{4}" ]
       - ["--ljson", "Optional launch.json file (required if no launch.json is in sdpm path)", .*(/|\\)launch\.json$ ]
 
     flags:
@@ -103,8 +105,8 @@ raw:
       - ":CD {package_base}"
       - ":COPY --force {fpack} {vfxbox_repo}/{platform}/"
       - ["--winlin", {
-            clause : "'{platform}' == 'Windows'",
-            commands : ":COPY --force {fpack} {vfxbox_repo}/Linux/" ,
-            else_commands : ":COPY --force {fpack} {vfxbox_repo}/Windows/" 
+            "clause" : "'{platform}' == 'Windows'",
+            "commands" : ":COPY --force {fpack} {vfxbox_repo}/Linux/" ,
+            "else_commands" : ":COPY --force {fpack} {vfxbox_repo}/Windows/" 
         }]
       - ":DEL {fpack}" # Don't need after copy

@@ -166,7 +166,7 @@ def launch_application(args):
         executable = args.application
     else:
         #
-        # Fire the applicaiton up! Get the exectuable within our launch.json. When
+        # Fire the application up! Get the exectuable within our launch.json. When
         # resolving a package, the last one should _always_ be the launchable
         # application.
         #
@@ -175,7 +175,7 @@ def launch_application(args):
         if not arguments and this_app.default_args():
             arguments = this_app.default_args()
 
-    utils.run_(shlex.split(executable) + arguments, env, args.verbose)
+    utils.run_(shlex.split(executable.replace('\\', '/')) + arguments, env, args.verbose)
     return 0
 
 

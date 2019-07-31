@@ -8,7 +8,7 @@ if "%SPHINXBUILD%" == "" (
 	set SPHINXBUILD=sphinx-build
 )
 set SOURCEDIR=source
-set BUILDDIR=build
+set BUILDDIR=%FLAUNCH_BUILD_DIR%\doc\flaunch
 
 if "%1" == "" goto help
 
