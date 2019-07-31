@@ -136,7 +136,7 @@ class RawCommandManager(_AbstractManager):
 
         for flag in flags:
             flag_name, help_, _ = _info(flag)
-            parser.add_argument(utils.cli_name(flag_name), help=help_)
+            parser.add_argument(utils.cli_name(flag_name), action='store_true', help=help_)
 
         return parser
 
