@@ -28,7 +28,7 @@ class _AbstractFLaunchData(object):
     Abstract class that handles the expansion of values based
     on various input.
     """
-    SEARCH_REGEX = re.compile(r"\{+[^\{\s]+\}")
+    SEARCH_REGEX = re.compile(r"\{+[^\{]+[^\s]\}")
 
     def __init__(self, package, path, data):
         """
@@ -214,23 +214,30 @@ class _AbstractFLaunchData(object):
                             .format(variable)
                         )
 
-                    value = value.replace(needs_resolve, end_value)
+                    pre_expression = end_value
 
                 elif hasattr(self, variable):
                     # For things like path, platform, etc.
-                    value = value.replace(needs_resolve, getattr(self, variable))
+                    pre_expression = getattr(self, variable)
 
                 elif variable.upper() in env:
                     # We check on the uppercase first to make sure environment
                     # variables get first pick, as opposed to lowercase props:
-                    value = value.replace(needs_resolve, env[variable.upper()])
+                    pre_expression = env[variable.upper()]
 
                 elif variable in env:
-                    value = value.replace(needs_resolve, env[variable])
+                    pre_expression = env[variable]
+
+                else:
+                    continue # Nothing found for this...
 
                 if expressions:
                     for expr in expressions:
-                        value = _StringExpression.evaluate(expr, value, self)
+                        pre_expression = _StringExpression.evaluate(
+                            expr, pre_expression, self
+                        )
+
+                value = value.replace(needs_resolve, pre_expression)
 
         if found is None:
             found = set()

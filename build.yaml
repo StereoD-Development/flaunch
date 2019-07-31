@@ -49,12 +49,11 @@ build:
 #
 raw:
 
-  # run with: fbuilc raw flaunch custom_print_example
+  # run with: fbuild raw flaunch custom_print_example
   custom_print_example:
     help: "An example of a raw command"
     commands:
       - ":PRINT Example command that does some work with {package} in {source_dir}"
-
 
   deploy_mad_temp:
     help: |

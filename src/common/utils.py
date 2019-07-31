@@ -315,3 +315,14 @@ def initialize_pacakge(args):
         ))
 
     logging.info('Initialized - created build.yaml! Welcome to fbuild.')
+
+
+class SimpleRegistry(type):
+    """
+    A metaclass that builds a registry automatically
+    """
+    def __init__(cls, name, bases, dct):
+        if not hasattr(cls, '_registry'):
+            cls._registry = {} # Base Class
+        else:
+            cls._registry[cls.alias] = cls

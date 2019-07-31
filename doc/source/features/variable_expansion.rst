@@ -50,7 +50,20 @@ There is a small arsenal of expressions that can be applied to an expanded value
 
 .. code-block:: yaml
 
-    my_variable = "foo"
-    uppered_variable = "{my_variable|upp}"
+  my_variable: "foo"
+  uppercased_variable: "{my_variable|upp}"
+
+Data Types
+----------
+
+With these expressions, you can even work with non-string data types.
+
+.. code-block:: yaml
+
+  props:
+
+    a_list: ["Apple", "Bannana", "Orange"]
+
+    info_string: "[{a_list|join(', ')}] has {a_list|count} items!"
 
 For more information on these see the :ref:`String Expression API`.

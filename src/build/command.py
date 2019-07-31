@@ -8,18 +8,7 @@ from common import utils
 
 # -- Command Control
 
-class CommandRegistry(type):
-    """
-    A metaclass that builds a registry automatically
-    """
-    def __init__(cls, name, bases, dct):
-        if not hasattr(cls, '_registry'):
-            cls._registry = {} # Base Class
-        else:
-            cls._registry[cls.alias] = cls
-
-
-@utils.add_metaclass(CommandRegistry)
+@utils.add_metaclass(utils.SimpleRegistry)
 class _BuildCommand(object):
     """
     Abstract build command interface. Creating new commands starts with this
