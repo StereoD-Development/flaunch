@@ -248,6 +248,7 @@ def build_parser():
     _fill_parser_with_defaults(prepper)
     prepper.add_argument('package', help='The package that we\'re deploying')
     prepper.add_argument('version', help='The version that we\'re deploying (hint: This is the git tag that\'s created)')
+    prepper.add_argument('-c', '--custom', nargs=2, metavar=('YAML', 'SOURCE'), help='Custom yaml file and source directory location')
     prepper.add_argument('-b', '--branch', help='The branch to create our tag from')
     prepper.add_argument('-s', '--hash', help='A specific commit hash to use for our tag')
     prepper.add_argument('-g', '--git', help='Custom git link to pull from')
