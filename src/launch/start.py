@@ -147,15 +147,16 @@ def launch_application(args):
     #
     # Because this is a proper package, we also prep our launchable package!
     #
+    resolved_launch = []
     if not args.run:
         resolved_launch = pkgrep.resolve_packages(
             [args.application], packages, builds=build_locations, all_ljsons=launch_jsons
         )
 
-        for launch_json in resolved_launch + list(launch_jsons):
-            logging.debug('Prepping: {}'.format(launch_json.package))
-            pkgrep.prep_env(launch_json, env)
-            logging.debug('-- Done Prepping: {}'.format(launch_json.package))
+    for launch_json in resolved_launch + list(launch_jsons):
+        logging.debug('Prepping: {}'.format(launch_json.package))
+        pkgrep.prep_env(launch_json, env)
+        logging.debug('-- Done Prepping: {}'.format(launch_json.package))
 
     arguments = args.app_args
 

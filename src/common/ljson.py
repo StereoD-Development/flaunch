@@ -4,6 +4,9 @@ launch.json helper tools
 
 from __future__ import absolute_import
 
+import json
+import logging
+
 from . import log
 from .platformdict import PlatformDict
 from .abstract import _AbstractFLaunchData, FLaunchDataError
