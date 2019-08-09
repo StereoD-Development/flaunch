@@ -166,6 +166,8 @@ def zip_files(name, files, root=None, mode='w', ignore=[], noisey=False):
     if root is None:
         root = ''
 
+    root = root.replace("\\", "/")
+
     def _clean(p):
         return p.replace('\\', '/').lstrip('/')
 
