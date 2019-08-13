@@ -10,7 +10,6 @@ import logging
 import argparse
 from functools import wraps
 
-from common.utils import yaml
 from common import utils
 from .abstract_manager import _AbstractManager
 from .parse import BuildCommandParser

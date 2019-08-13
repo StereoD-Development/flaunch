@@ -8,7 +8,16 @@ import sys
 import logging
 from copy import deepcopy
 
-from common.utils import yaml
+try:
+    import yaml
+except:
+    try:
+        import pureyaml as yaml # Current version is broken but you never know
+        yaml.safe_load = yaml.load
+    except:
+        raise ImportError("A yaml parser is required to use fbuild - " \
+                          "developers should use \"pip install PyYAML\"")
+
 from common.platformdict import PlatformDict
 from common.abstract import _AbstractFLaunchData, FLaunchDataError
 from common import utils

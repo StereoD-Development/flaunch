@@ -28,7 +28,7 @@ class _AbstractFLaunchData(object):
     Abstract class that handles the expansion of values based
     on various input.
     """
-    SEARCH_REGEX = re.compile(r"\{+[^\{]+[^\s]\}")
+    SEARCH_REGEX = re.compile(r"\{+[^\{\n]+[^\s]\}")
 
     def __init__(self, package, path, data):
         """
