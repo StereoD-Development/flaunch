@@ -81,7 +81,7 @@ raw:
       #
       - ":SET /mnt/isilon2/s3d/resources/sw/packages/{pkg}/{version}/{fix} package_base"
       - clause: "'{pkg}' == 'flux'"
-        commands: ":SET Flux {pkg}"
+        commands: ":SET Flux pkg"
       - ":SET {pkg}.{version}.{fix}.zip fpack"
       - ":SET /mnt/vfxbox/_FLUX/flaunch_packages/{pkg} vfxbox_repo"
 
@@ -103,7 +103,8 @@ raw:
       #
       - ":ZIP ../{fpack} -f ./ -e sdpm.rc -e sdpm.tar.gz -e sdpm.zip -n"
       - ":CD {package_base}"
-      - ":COPY --force {fpack} {vfxbox_repo}/{platform}/"
+      - ["--windows", ":SET Windows deploy_platform", ":SET {platform} deploy_platform"]
+      - ":COPY --force {fpack} {vfxbox_repo}/{deploy_platform}/"
       - ["--winlin", {
             "clause" : "'{platform}' == 'Windows'",
             "commands" : ":COPY --force {fpack} {vfxbox_repo}/Linux/" ,
