@@ -21,16 +21,6 @@ from . import log
 PY3 = sys.version_info[0] == 3
 SYSTEM = platform.system()
 
-try:
-    import yaml
-except:
-    try:
-        import pureyaml as yaml # Current version is broken but you never know
-        yaml.safe_load = yaml.load
-    except:
-        raise ImportError("A yaml parser is required to use fbuild - " \
-                          "developers should use \"pip install PyYAML\"")
-
 if PY3:
     def _iter(it):
         return it.items()

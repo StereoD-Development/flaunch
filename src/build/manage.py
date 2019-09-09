@@ -17,7 +17,6 @@ from common.platformdict import PlatformDict
 from common.abstract import _AbstractFLaunchData, FLaunchDataError
 from common import log
 from common import utils
-from common.utils import yaml
 from common import constants
 
 from .parse import BuildCommandParser
