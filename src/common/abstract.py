@@ -14,6 +14,7 @@ import platform
 import collections
 from contextlib import contextmanager
 
+from .strexpr import _StringExpression
 from .platformdict import PlatformDict
 from . import log
 
@@ -27,7 +28,7 @@ class _AbstractFLaunchData(object):
     Abstract class that handles the expansion of values based
     on various input.
     """
-    SEARCH_REGEX = re.compile(r"\{+[^\{|\s]+\}")
+    SEARCH_REGEX = re.compile(r"\{+[^\{\n]+[^\s]\}")
 
     def __init__(self, package, path, data):
         """
@@ -36,6 +37,10 @@ class _AbstractFLaunchData(object):
         :param data: PlatformDict that holds onto our data
         """
         self._package = package
+
+        if data['name']:
+            self._package = data['name']
+
         self._path = path.replace('\\', '/')
         self._data = data
         self._original_data = collections.deque()
@@ -97,7 +102,7 @@ class _AbstractFLaunchData(object):
         """
         :return: The directory to this file (str)
         """
-        return os.path.abspath(os.path.dirname(self._path))
+        return os.path.abspath(os.path.dirname(self._path)).replace('\\', '/')
 
 
     @property
@@ -176,6 +181,12 @@ class _AbstractFLaunchData(object):
             for needs_resolve in found_to_resolve:
                 variable = needs_resolve[1:-1]
 
+                expressions = []
+                if '|' in variable:
+                    values = variable.split('|')
+                    variable = values[0]
+                    expressions = values[1:]
+
                 if variable.endswith('...'):
                     if not rtype is list:
                         logging.error('... syntax only allowed for parsed commands.')
@@ -207,19 +218,30 @@ class _AbstractFLaunchData(object):
                             .format(variable)
                         )
 
-                    value = value.replace(needs_resolve, end_value)
+                    pre_expression = end_value
 
                 elif hasattr(self, variable):
                     # For things like path, platform, etc.
-                    value = value.replace(needs_resolve, getattr(self, variable))
+                    pre_expression = getattr(self, variable)
 
                 elif variable.upper() in env:
                     # We check on the uppercase first to make sure environment
                     # variables get first pick, as opposed to lowercase props:
-                    value = value.replace(needs_resolve, env[variable.upper()])
+                    pre_expression = env[variable.upper()]
 
                 elif variable in env:
-                    value = value.replace(needs_resolve, env[variable])
+                    pre_expression = env[variable]
+
+                else:
+                    continue # Nothing found for this...
+
+                if expressions:
+                    for expr in expressions:
+                        pre_expression = _StringExpression.evaluate(
+                            expr, pre_expression, self
+                        )
+
+                value = value.replace(needs_resolve, pre_expression)
 
         if found is None:
             found = set()
@@ -228,7 +250,7 @@ class _AbstractFLaunchData(object):
             #
             # Recursive expansion!
             #
-            still_to_resolve = _AbstractFLaunchData.SEARCH_REGEX.findall(val)
+            still_to_resolve = set(_AbstractFLaunchData.SEARCH_REGEX.findall(val))
             unknown = set()
 
             for sub_val in still_to_resolve:
