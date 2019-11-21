@@ -92,6 +92,13 @@ func__sdpm_transfer_to_facilities(sdpm_full_version):
   - ':SET "python {_sdpm_platform_server}/s3d/resources/sw/scripts/sdpm.py" sdpm_command'
   - "{sdpm_command...} {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{package}/{sdpm_full_version} tor bur"
   - "{sdpm_command...} {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{package}/{sdpm_full_version} tor pun"
+
+
+func__sdpm_custom_transfer(dpackage, verison, hotfit):
+  - ':SET "verbose localize env prepend python/2.7.2 localize launch TransferTools -n signiant basic" sdpm_transfer_command'
+  - ':SET "python {_sdpm_platform_server}/s3d/resources/sw/scripts/sdpm.py" sdpm_command'
+  - "{sdpm_command...} {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{dpackage}/{sdpm_full_version} tor bur"
+  - "{sdpm_command...} {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{dpackage}/{sdpm_full_version} tor pun"
  
 
 build:
@@ -146,3 +153,16 @@ raw:
 
     commands:
       - ":FUNC sdpm_transfer_to_facilities({sdpm_full_version})"
+
+  sdpm_full_transfer:
+
+    help: |
+      Transfer a deployed package to other sdpm facilities (at the
+      moment this is locked to Toronto as the source only)
+
+    arguments:
+      - [dpackage, "pgk"]
+      - [sdpm_full_version, "Major.Minor.Subminor/#### version to transfer", '[0-9]+\.[0-9]+\.[0-9]+\/[0-9]{4}']
+
+    commands:
+      - ":FUNC sdpm_custom_transfer({dpackage}, {sdpm_full_version})"
