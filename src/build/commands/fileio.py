@@ -292,7 +292,7 @@ class ZipCommand(_BuildCommand):
 
             root = self.data.root
             if root is None:
-                root = self._common_prefix(ready_files)
+                root = self._common_prefix([os.path.dirname(r) for r in ready_files])
 
             name = self.data.archive
             if not name.endswith('.zip'):
