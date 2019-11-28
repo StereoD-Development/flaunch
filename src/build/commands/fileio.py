@@ -290,9 +290,14 @@ class ZipCommand(_BuildCommand):
             # With said paths, make sure we all have the same slash direction
             ready_files = list(map(lambda x: x.replace('\\', '/'), ready_files))
 
+            def _dir(f):
+                if os.path.isdir(f):
+                    return f
+                return os.path.dirname(f)
+
             root = self.data.root
             if root is None:
-                root = self._common_prefix([os.path.dirname(r) for r in ready_files])
+                root = self._common_prefix([_dir(r) for r in ready_files])
 
             name = self.data.archive
             if not name.endswith('.zip'):
