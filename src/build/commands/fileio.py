@@ -300,7 +300,7 @@ class ZipCommand(_BuildCommand):
             if root is None:
                 root = self._common_prefix(cleaned)
 
-            if noisey:
+            if self.data.noisey:
                 logging.debug('Cleaned Driectories: {}'.format('\n'.join(cleaned)))
                 logging.info('Unzip root: {}'.format(root))
 
