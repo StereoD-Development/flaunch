@@ -73,15 +73,19 @@ raw:
     flags:
       - ["winlin", "Pass if this package can be deployed for both Win and Linux at the same time."]
       - ["windows", "Pass to deploy the Windows files (AMD64-Windows)"]
+      - ["beta", "Pass to deploy a beta sdpm package"]
 
     commands:
 
       #
       # Prep work and attribute setting
       #
-      - ":SET /mnt/isilon2/s3d/resources/sw/packages/{pkg}/{version}/{fix} package_base"
+      - ["--beta", ":SET /beta/ possible_beta", ":SET / possible_beta"]
+      - ":SET /mnt/isilon2/s3d/resources/sw/packages/{pkg}{possible_beta}{version}/{fix} package_base"
       - clause: "'{pkg}' == 'flux'"
         commands: ":SET Flux pkg"
+      - clause: "'{pkg}' == 'helios'"
+        commands: ":SET Helios pkg"
       - ":SET {pkg}.{version}.{fix}.zip fpack"
       - ":SET /mnt/vfxbox/_FLUX/flaunch_packages/{pkg} vfxbox_repo"
 
@@ -111,3 +115,23 @@ raw:
             "else_commands" : ":COPY --force {fpack} {vfxbox_repo}/Windows/" 
         }]
       - ":DEL {fpack}" # Don't need after copy
+
+  deploy_pd:
+    help: |
+      Delploy from Flux predeploy location to madrid
+
+    arguments:
+      - ["pkg",         "The name of the fbuild package"]
+      - ["version",     "The sdpm version string", "\\d.\\d.\\d" ]
+
+    flags:
+      - ["windows",     "Deploy windows package, otherwise Linux"]
+
+    commands:
+
+      # 
+      - ":SET /mnt/isilon2/s3d/resources/sw/temp/flux_predeploy/{pkg} package_base"
+      - ["--windows", ":SET Windows arch", ":SET Linux arch"]
+      - ":SET /mnt/vfxbox/_FLUX/flaunch_packages/{pkg} vfxbox_repo"
+      - ":COPY --force --make-dirs {package_base}/{arch}/{version}/{pkg}.{version}.zip {vfxbox_repo}/{arch}"
+
