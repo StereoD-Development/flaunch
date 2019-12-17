@@ -246,3 +246,14 @@ class CountExpr(_StringExpression):
 
     def run(self, value, *args):
         return str(len(value))
+
+
+class Dirname(_StringExpression):
+    """
+    Given a string, run os.path.dirname on it
+    """
+    alias = 'dirname'
+
+    def run(self, value, *args):
+        import os
+        return os.path.dirname(value)
