@@ -296,8 +296,13 @@ class ZipCommand(_BuildCommand):
                 return os.path.dirname(f)
 
             root = self.data.root
+            cleaned = [_dir(r) for r in ready_files]
             if root is None:
-                root = self._common_prefix([_dir(r) for r in ready_files])
+                root = self._common_prefix(cleaned)
+
+            if noisey:
+                logging.debug('Cleaned Driectories: {}'.format('\n'.join(cleaned))
+                logging.info('Unzip root: {}'.format(root))
 
             name = self.data.archive
             if not name.endswith('.zip'):
