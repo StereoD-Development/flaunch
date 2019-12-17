@@ -301,7 +301,7 @@ class ZipCommand(_BuildCommand):
                 root = self._common_prefix(cleaned)
 
             if noisey:
-                logging.debug('Cleaned Driectories: {}'.format('\n'.join(cleaned))
+                logging.debug('Cleaned Driectories: {}'.format('\n'.join(cleaned)))
                 logging.info('Unzip root: {}'.format(root))
 
             name = self.data.archive
