@@ -241,6 +241,10 @@ class _AbstractFLaunchData(object):
                             expr, pre_expression, self
                         )
 
+                if isinstance(pre_expression, (list, tuple)):
+                    # Bake the values down...
+                    pre_expression = ' '.join(pre_expression)
+
                 value = value.replace(needs_resolve, pre_expression)
 
         if found is None:

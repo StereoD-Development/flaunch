@@ -133,7 +133,7 @@ class ZFile(object):
             try:
                 # Probably a windows machine?
                 self._zfile = zipfile.ZipFile(
-                    self._name, self._mode, compression=zipfile.ZIP_LZMA
+                    self._name, self._mode, compression=zipfile.ZIP_DEFLATED
                 )
             except Exception as e:
                 # Probably a unix machine

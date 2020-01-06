@@ -290,9 +290,19 @@ class ZipCommand(_BuildCommand):
             # With said paths, make sure we all have the same slash direction
             ready_files = list(map(lambda x: x.replace('\\', '/'), ready_files))
 
+            def _dir(f):
+                if os.path.isdir(f):
+                    return f
+                return os.path.dirname(f)
+
             root = self.data.root
+            cleaned = [_dir(r) for r in ready_files]
             if root is None:
-                root = self._common_prefix(ready_files)
+                root = self._common_prefix(cleaned)
+
+            if self.data.noisey:
+                logging.debug('Cleaned Driectories: {}'.format('\n'.join(cleaned)))
+                logging.info('Unzip root: {}'.format(root))
 
             name = self.data.archive
             if not name.endswith('.zip'):

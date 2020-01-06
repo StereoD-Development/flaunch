@@ -12,10 +12,17 @@ from common import communicate
 from build.command import _BuildCommand
 
 
+# Default endpoints for the Jenkins build system
 JENKINS_ENDPOINT = {
-    'windows' : os.environ.get('FLAUNCH_JENKINS_ENDPOINT_WINDOWS', '...'),
-    'linux' : os.environ.get('FLAUNCH_JENKINS_ENDPOINT_LINUX', '...')
+    'windows' : os.environ.get(
+        'JENKINS_ENDPOINT_WINDOWS', 'http://sdt-devbuild.stereodstaff.com:8080'
+    ),
+    'linux' : os.environ.get(
+        'JENKINS_ENDPOINT_LINUX', 'http://10.5.36.101:8080'
+    )
 }
+
+JENKINS_DEFAULT_TOKEN = 'thatsnomoon'
 
 
 class JenkinsCommand(_BuildCommand):
@@ -43,7 +50,10 @@ class JenkinsCommand(_BuildCommand):
         job_data = { 'parameter' : parameters }
         for platform_ in self.data.platform or [platform.system()]:
 
+
+            ## ____START__HERE___ISH____
             proper_jobname = '!!TODO!! -> need some kind of known system'
+            proper_jobname = build_file.attributes()['']
 
             endpoint = JENKINS_ENDPOINT[platform_.lower()]
             endpoint += '/job/{}/build'.format(proper_jobname)
