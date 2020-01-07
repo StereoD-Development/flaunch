@@ -130,16 +130,9 @@ class ZFile(object):
         if self._mode == 'r':
             self._zfile = zipfile.ZipFile(self._name, self._mode)
         else:
-            try:
-                # Probably a windows machine?
-                self._zfile = zipfile.ZipFile(
-                    self._name, self._mode, compression=zipfile.ZIP_DEFLATED
-                )
-            except Exception as e:
-                # Probably a unix machine
-                self._zfile = zipfile.ZipFile(
-                    self._name, self._mode, compression=zipfile.ZIP_DEFLATED
-                )
+            self._zfile = zipfile.ZipFile(
+                self._name, self._mode, compression=zipfile.ZIP_DEFLATED
+            )
 
         return self._zfile
 
