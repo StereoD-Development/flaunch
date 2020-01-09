@@ -217,6 +217,8 @@ def resolve_packages(package_list, retrieved, builds=[], all_ljsons=None):
             return False
         return True
 
+    pre_retrieved = [_get_package_and_version(p)[0] for p in retrieved]
+
     # To make sure we can't go cyclic or overload explicit
     list(map(retrieved.add, map(_package_names, package_list)))
 
@@ -225,6 +227,12 @@ def resolve_packages(package_list, retrieved, builds=[], all_ljsons=None):
 
         logging.debug('Resolve: {}'.format(package))
         package, version = _get_package_and_version(package)
+
+        if package in pre_retrieved:
+            logging.debug('Required package: {} already satisfied'
+                          .format(package))
+
+            continue
 
         current_launch = _get_package(package, version, builds=builds)
         if main_package is None:
