@@ -60,7 +60,8 @@ func__build_environment():
 
       # TODO Only use required flaunch packages
       - ':ZIP -x -n {_flaunch_root_dir}/py/flaunch_packages.zip -o {build_dir}/{buildenv}/Lib/site-packages'
-      - ':PYTHON _chmod_file'
+      - unix: ':PYTHON _chmod_file'
+        windows: []
 
   - windows: '{build_dir}/{buildenv}/scripts/activate.bat && pip install -r {requirements_file} {pypi_server...}'
     unix: 'bash -c ''source "{build_dir}/buildenv/bin/activate" && pip install {pypi_server}  -r {requirements_file}'''
