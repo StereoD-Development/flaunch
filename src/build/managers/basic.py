@@ -5,6 +5,7 @@ from __future__ import absolute_import
 
 import os
 import sys
+import glob
 import shutil
 import fnmatch
 import traceback
@@ -101,14 +102,24 @@ class BasicBuilder(manage.BuildManager):
             # This is a generic build - just copy files
             # and let python do it's thing
             #
+            save_files = bf_build['save_between_builds'] or []
+            save_files = [self.build_file.expand(s) for s in save_files]
+
             if os.path.exists(build_path):
                 logging.info('Clear old data...')
-                for p in os.listdir(build_path):
-                    fp = os.path.join(build_path, p)
-                    if os.path.isdir(fp):
-                        shutil.rmtree(fp)
+
+                # for p in os.listdir(build_path):
+                to_clean = glob.glob(build_path + '/*')
+
+                for fpath in to_clean:
+                    fpath = fpath.replace('\\', '/')
+                    if any(fnmatch.fnmatch(fpath, n) for n in save_files):
+                        continue
+
+                    if os.path.isdir(fpath):
+                        shutil.rmtree(fpath)
                     else:
-                        os.unlink(fp)
+                        os.unlink(fpath)
 
             build_root = build_path
 

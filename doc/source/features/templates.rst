@@ -69,13 +69,13 @@ Then, our actual ``build.yaml`` file could look something like:
 Now, when we build:
 
 
-.. code-block::
+.. code-block:: text
 
   fbuild -v MyDerivedBuild
 
 Nothing would happen! That's because the plugin ``post_build`` command looks for the argument ``--extra-build``.
 
-.. code-block::
+.. code-block:: text
 
   fbuild -v MyDerivedBuild --extra-build
 

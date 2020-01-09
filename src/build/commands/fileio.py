@@ -174,6 +174,12 @@ class DelCommand(_BuildCommand):
             help='Files to remove (accepts * patterns)'
         )
 
+        parser.add_argument(
+            '-x', '--exclude',
+            action='append',
+            help='Patterns to ignore when deleting'
+        )
+
 
     def run(self, build_file):
         """
@@ -184,6 +190,10 @@ class DelCommand(_BuildCommand):
         for rem in to_remove:
             if not os.path.exists(rem):
                 continue
+
+            for pattern in (self.data.exclude or []):
+                if fnmatch.fnmatch(rem, pattern):
+                    continue
 
             if os.path.isdir(rem):
                 shutil.rmtree(rem)

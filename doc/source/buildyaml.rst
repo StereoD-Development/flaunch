@@ -24,7 +24,7 @@ The Package
 
 Let's say we have the follow package structure:
 
-.. code-block::
+.. code-block:: text
 
     MyPackge
         `- MyPackage
@@ -79,7 +79,7 @@ That should get you started with a ``build.yaml``. It should look something like
 
 So our structure should look like this:
 
-.. code-block::
+.. code-block:: text
 
   MyPackage
       `- MyPackage/
@@ -100,7 +100,7 @@ In this case, ``FLAUNCH_DEV_DIR`` will be set to the directory above the *root* 
 
 These two can be overwritten by the ``fbuild`` command but for now, with them set, we can build our package.
 
-.. code-block::
+.. code-block:: text
 
   fbuild MyPackage
 
@@ -161,7 +161,7 @@ Run Our Build
 
 What's the point of building it if we can't actually use it? Let's give the python interpreter a shot.
 
-.. code-block::
+.. code-block:: text
 
   flaunch --package MyPackage/dev --run python
 

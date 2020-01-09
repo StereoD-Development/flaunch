@@ -1,0 +1,71 @@
+#
+# Tools for building a deployable virtual environment
+#
+props:
+
+  # -- Python install data
+  _py_default_location:
+    unix: "/usr/bin/python{use_python_version}"
+    windows: 'C:/Python{use_python_version}/python.exe'
+
+  _py_backup_location:
+    unix: "/usr/bin/python{use_python_version}"
+    windows: '{userprofile}/AppData/Local/Programs/Python/Python{use_python_version}/python.exe'
+
+  # -- Publish properties to modify
+  use_python_version:
+    unix: "3.7"
+    windows: "37"
+
+  buildenv: 'buildenv'
+  pypi_server: "--index-url=http://sdt-pypi --trusted-host sdt-pypi"
+  requirements_file: "{path}/requirements/requirements.txt"
+
+
+func__get_python_version(variable):
+  # Function for finding a valid python version.
+  - clause: 'file_exists("{_py_default_location}")'
+    commands: ":SET -g {_py_default_location} {variable}"
+    else_commands:
+      clause: 'file_exists("{_py_backup_location}")'
+      commands: ":SET -g {_py_backup_location} {variable}"
+      else_commands: ":FAIL Cannot locate valid python install"
+
+
+# Function called to actually build the virtual environment
+func__build_environment():
+
+  # Find the version of python to use
+  - clause: 'env_set("PYTHON_EXEC_PATH")'
+    commands: ":SET {python_exec_path}, python_exe"
+    else_commands: ":FUNC get_python_version(python_exe)"
+
+  # Once found, check if we want a "clean slate" env
+  - ["--rebuild", ':DEL {build_dir}/{buildenv}']
+  - clause: "not file_exists('{build_dir}/{buildenv}')"
+    commands:
+      windows:
+        - ':PRINT Creating virtual environment in {build_dir}'
+        # Identify the virtualenv module name
+        - clause: '"{use_python_version}".startswith("3")'
+          commands: ":SET venv venv_module"
+          else_commands: ':SET virtualenv venv_module -p "{python_exe}"'
+        - '{python_exe} -m {venv_module...} "{build_dir}/{buildenv}"'
+
+        # TODO Only use required flaunch packages
+        - ':ZIP -x -n {_flaunch_root_dir}/py/flaunch_packages.zip -o {build_dir}/{buildenv}/Lib/site-packages'
+  - '{build_dir}/{buildenv}/scripts/activate.bat && pip install -r {requirements_file} {pypi_server...}'
+
+
+build:
+
+  scmhoo: true
+
+  # Once built, we don't want to remove the environment between
+  # each subsequent build
+  save_between_builds:
+    - "{build_dir}/{buildenv}*"
+
+  pre_build:
+    - ':FUNC build_environment()'
+

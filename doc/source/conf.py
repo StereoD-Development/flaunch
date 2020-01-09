@@ -41,7 +41,6 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosectionlabel',
-    'recommonmark',
     'sphinx_execute_code'
 ]
 
