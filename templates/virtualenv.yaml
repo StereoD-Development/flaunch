@@ -26,7 +26,16 @@ props:
   pypi_server: "--index-url=http://sdt-pypi --trusted-host sdt-pypi"
   requirements_file: "{path}/requirements/requirements.txt"
 
-
+  reloc_activate:
+    windows: |
+      import os, sys
+      script_loc = "{build_dir}/{buildenv}/Scripts/activate.bat"
+      with open(script_loc, "r") as f:
+          out = f.read()
+      out = out.replace("VIRTUAL_ENV={build_dir|bs}\\{buildenv}",
+                        "VIRTUAL_ENV=%~dp0..")
+      with open(script_loc, "w") as f:
+          f.write(out)
 
 func__get_python_version(variable):
   # Function for finding a valid python version.
@@ -43,7 +52,7 @@ func__build_environment():
 
   # Find the version of python to use
   - clause: 'env_set("PYTHON_EXEC_PATH")'
-    commands: ":SET {python_exec_path}, python_exe"
+    commands: ":SET {python_exec_path} python_exe"
     else_commands: ":FUNC get_python_version(python_exe)"
 
   # Once found, check if we want a "clean slate" env
@@ -51,11 +60,13 @@ func__build_environment():
   - clause: "not file_exists('{build_dir}/{buildenv}')"
     commands:
       - ':PRINT Creating virtual environment in {build_dir}'
-      - clause: '"{use_python_version}".startswith("3")'
-        commands: ":SET venv venv_module"
-        else_commands: ':SET "virtualenv -p \"{python_exe}\"" venv_module'
+      - ':SET "virtualenv --system-site-packages -p \"{python_exe}\"" venv_module'
       - '{python_exe} -m {venv_module...} "{build_dir}/{buildenv}"'
-      - windows: '{build_dir}/{buildenv}/scripts/activate.bat && pip install --upgrade pip {pypi_server...}'
+      - windows:
+          - '{build_dir}/{buildenv}/scripts/activate.bat && pip install --upgrade pip {pypi_server...}'
+          - ':COPY "{python_exe}/../DLLs/*" "{build_dir}/{buildenv}/DLLs" --force'
+          - ':COPY "{python_exe}/../Lib/*" "{build_dir}/{buildenv}/Lib"  --exclude "__pycache__" --exclude "site-packages" --force'
+          - ':PYTHON reloc_activate'
         unix: 'bash -c ''source "{build_dir}/buildenv/bin/activate" && pip install --upgrade pip {pypi_server}'''
 
       # TODO Only use required flaunch packages

@@ -106,7 +106,7 @@ class _StringExpression(object):
             escape_char = False
 
             for i, char in enumerate(args_string):
-                if char == '\\':
+                if char == '\\' and not escape_char:
                     escape_char = True
                     continue
 
@@ -147,6 +147,16 @@ class ForwardSlashExpr(_StringExpression):
 
     def run(self, value, *args):
         return value.replace('\\', '/')
+
+
+class BackSlashExpr(_StringExpression):
+    """
+    Convert / slashes to \\
+    """
+    alias = 'bs'
+
+    def run(self, value, *args):
+        return value.replace('/', '\\\\')
 
 
 class LowercaseExpr(_StringExpression):
@@ -209,6 +219,33 @@ class TruncateExpr(_StringExpression):
         if len(args) > 1 and args[1] not in ('False'):
             return value[count:]
         return value[:count]
+
+
+class ReplExpr(_StringExpression):
+    """
+    Replace a given chunk of text.
+    repl(<replace>, <with>, <count>=None)
+    """
+    alias = 'repl'
+
+    def run(self, value, *args):
+        if not args:
+            return value
+
+        print ("args", args)
+
+        count = None
+        if len(args) == 3:
+            try:
+                count = int(args[2])
+            except ValueError as err:
+                return value
+            except IndexError as err:
+                return value
+
+        if count:
+            return value.replace(args[0], args[1], count)
+        return value.replace(args[0], args[1])
 
 
 class JoinExpr(_StringExpression):
