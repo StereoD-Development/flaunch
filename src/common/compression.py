@@ -168,53 +168,47 @@ def zip_files(name, files, root=None, mode='w', ignore=[], noisey=False):
         for file_name in files:
             file_name = file_name.replace("\\", "/")
 
+            def _zip_action(base, files):
+                """
+                Recurse and do the action required
+                """
+                for file in files:
+                    if any(fnmatch.fnmatch(file, p) for p in ignore):
+                        continue
+
+                    fpath = _clean(os.path.join(base, file))
+                    if any(fnmatch.fnmatch(fpath, p) for p in ignore):
+                        continue
+
+                    if os.path.isdir(fpath):
+
+                        files = os.listdir(fpath)
+                        if not files:
+                            if noisey:
+                                logging.info("Zipping: {}".format(fpath))
+                            directory_path = _clean(fpath.replace(root, '', 1))
+                            zinfo = zipfile.ZipInfo(directory_path + '/')
+                            zfile.writestr(zinfo, '')
+                        else:
+                            _zip_action(fpath, files)
+
+                    else:
+                        archive_root = _clean(fpath.replace(root, '', 1))
+                        if os.path.islink(fpath):
+                            if noisey:
+                                logging.info("Zipping (symlink): {}".format(fpath))
+                            _zip_symlink(fpath, archive_root, zfile)
+                        else:
+                            if noisey:
+                                logging.info("Zipping: {}".format(fpath))
+                            zfile.write(fpath, archive_root)
+
+
             all_files = []
             if os.path.isdir(file_name):
-                for base, dirs, files in os.walk(file_name):
-
-                    #
-                    # Check for empty directories
-                    #
-                    for dir_ in dirs:
-                        for pattern in ignore:
-                            if fnmatch.fnmatch(dir_, pattern):
-                                break
-                        else:
-                            fn = os.path.join(base, dir_)
-                            if os.listdir(fn) == []:
-                                if noisey:
-                                    logging.info("Zipping: {}".format(fn))
-                                directory_path = _clean(fn.replace(root, '', 1))
-                                zinfo = zipfile.ZipInfo(directory_path + '/')
-                                zfile.writestr(zinfo, '')
-
-                    for file in files:
-
-                        for pattern in ignore:
-                            if fnmatch.fnmatch(file, pattern):
-                                break
-                        else:
-                            fn = os.path.join(base, file)
-                            archive_root = _clean(fn.replace(root, '', 1))
-                            if os.path.islink(fn):
-                                if noisey:
-                                    logging.info("Zipping (symlink): {}".format(fn))
-                                _zip_symlink(fn, archive_root, zfile)
-                            else:
-                                if noisey:
-                                    logging.info("Zipping: {}".format(fn))
-                                zfile.write(fn, archive_root)
-
-            elif os.path.islink(file_name):
-                if noisey:
-                    logging.info("Zipping: {}".format(file_name))
-                _zip_symlink(file_name, _clean(file_name.replace(root, '', 1)), zfile)
-
-            elif os.path.isfile(file_name):
-                if noisey:
-                    logging.info("Zipping: {}".format(file_name))
-                zfile.write(file_name, file_name.replace(root, '', 1))
-
+                _zip_action(file_name, os.listdir(file_name))
+            elif os.path.exists(file_name):
+                _zip_action(os.path.dirname(file_name), [os.path.basename(file_name)])
             else:
                 raise RuntimeError('File not found: {}',format(file_name))
 

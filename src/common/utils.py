@@ -62,6 +62,8 @@ def run_(command_and_args, custom_env = {}, verbose = False, build_file = None):
             # Strip away surrounding the quotes
             full_command[i] = c[1:-1]
 
+    # Last second evaluation
+    full_command = [os.path.expandvars(f) for f in full_command]
     logging.info("Running command: " + " ".join(full_command))
 
     if PY3:

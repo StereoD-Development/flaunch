@@ -192,7 +192,7 @@ def _get_package(package, version=None, info=None, builds=[], force=False):
                     .format(package)
                 )
 
-    lj = ljson.LaunchJson(package, launch_json)
+    lj = ljson.LaunchJson(package, launch_json, development=is_dev)
     lj.version_number = info['version']
     return lj
 
@@ -329,7 +329,6 @@ def prep_env(ljson, env):
     :return: None
     """
     package_env = ljson['env']
-
     if not package_env:
         return
 

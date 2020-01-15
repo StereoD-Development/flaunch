@@ -35,6 +35,10 @@ props:
         def pathEnv(self):
             return { "PATH": [self._path] }
 
+  # -- This is where we can add additional logic for the exclusion
+  #    or inclusion of specific files within the sdpm deployment
+  sdpm_extra_zip_copy_args: ""
+
 
 #
 # Alas, sdpm builds dev within source. No fun, but that's the
@@ -67,9 +71,9 @@ func__sdpm_deploy_simple(sdpm_version, sdpm_fix_number):
   - ":MKDIR -s {deployment_loc}"
   - ":FUNC get_complete_files_path()"
   - ":CD {complete_files}"
-  - windows: ":ZIP ../{_sdpm_archive} -f ./ -n"
-    unix: tar -cvzf ../{_sdpm_archive} ./*
-  - ":COPY -f {build_dir}/* {deployment_loc}"
+  - windows: ":ZIP {sdpm_extra_zip_copy_args...} ../{_sdpm_archive} -f ./ -n"
+    unix: tar {sdpm_extra_zip_copy_args...} -cvzf ../{_sdpm_archive} ./*
+  - ":COPY -f {build_dir}/* {deployment_loc} {sdpm_extra_zip_copy_args...}"
   - ":MOVE -f ../{_sdpm_archive} {deployment_loc}"
   - ":WRITE {sdpm_rc_file} {deployment_loc}/sdpm.rc"
   - ":CD --pop" # Go back to where we were

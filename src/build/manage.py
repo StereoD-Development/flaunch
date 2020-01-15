@@ -78,11 +78,16 @@ class BuildManager(_AbstractManager):
 
 
     @classmethod
-    def get_manager(cls, package, arguments):
+    def get_manager(cls, package, arguments=None, raise_=False):
         """
         Grab the manager based on the build.yaml file
         """
         from build import managers
+        if not arguments:
+            import argparse
+            arguments = argparse.Namespace()
+            arguments.custom = None
+            arguments.additional_arguments = []
 
         yaml_file = arguments.custom or cls.yaml_file_from_package(package)
         source_dir = None
@@ -92,7 +97,10 @@ class BuildManager(_AbstractManager):
 
         if not os.path.isfile(yaml_file):
             logging.critical('Invalid build yaml: {}'.format(yaml_file))
-            sys.exit(1)
+            if not raise_:
+                sys.exit(1)
+            else:
+                raise IOError('Cannot find build yaml: {}'.format(yaml_file))
 
         build_data = BuildFile(package, yaml_file)
         build_type = build_data['build']['type'] or 'basic'

@@ -1,6 +1,10 @@
 #
 # Tools for building a deployable virtual environment
 #
+
+include:
+  - sdpm_package
+
 props:
 
   _chmod_file: |
@@ -37,8 +41,34 @@ props:
       with open(script_loc, "w") as f:
           f.write(out)
 
+  # -- Used for the sdpm_package to ignore the buildenv folder
+  sdpm_extra_zip_copy_args: "--exclude {buildenv}"
+
+  # sdpm.rc file for virutalenvs
+  buildenv_activate_location:
+    windows: Scripts
+    unix: bin
+  env_sdpm_rc_file: |
+      class SdpmRc(SdpmRcBase):
+          def pathEnv(self):
+              import os
+              activate_location = os.path.join(self._path, "{buildenv_activate_location}")
+              return { "PATH" : [activate_location],
+                       "{package|upp}_ENV_PATH" : activate_location }
+
+
+# ------------------------------------------------------------------------------------
+# -- Functions
+
+
+# -- Function for finding a valid python version.
+#
+# This will attempt assigning the value of a variable to the location
+# of the python executable within this machine
+#
+# :param variable: The name of the variable to set
+#
 func__get_python_version(variable):
-  # Function for finding a valid python version.
   - clause: 'file_exists("{_py_default_location}")'
     commands: ":SET -g {_py_default_location} {variable}"
     else_commands:
@@ -47,7 +77,13 @@ func__get_python_version(variable):
       else_commands: ":FAIL Cannot locate valid python install"
 
 
-# Function called to actually build the virtual environment
+
+# -- Function called to actually build the virtual environment
+#
+#  This will handle finding the python executable, moving all required files
+#  into place, downloading required thirdparty tools, and setting permissions
+#  on files where required.
+#
 func__build_environment():
 
   # Find the version of python to use
@@ -77,9 +113,37 @@ func__build_environment():
   - windows: '{build_dir}/{buildenv}/scripts/activate.bat && pip install -r {requirements_file} {pypi_server...}'
     unix: 'bash -c ''source "{build_dir}/buildenv/bin/activate" && pip install {pypi_server}  -r {requirements_file}'''
 
-build:
 
-  scmhoo: true
+
+
+# -- Function to deploy the environment to it's own sdpm repo
+#
+#  This deploys to {package}_env
+#
+func__sdpm_deploy_environment(version, fix):
+  - ":SET {_sdpm_deploy_location}_env/{sdpm_version}/{sdpm_fix_number}/{_sdpm_platform_arch} deployment_loc"
+  - ":DEL {deployment_loc}"
+  - ":MKDIR -s {deployment_loc}"
+  - ":FUNC get_complete_files_path()"
+  - ":CD {complete_files}"
+  - windows: ":ZIP ../{_sdpm_archive} -f ./{buildenv} -n"
+    unix: tar -cvzf ../{_sdpm_archive} ./{buildenv}*
+  - ":COPY -f {build_dir}/{buildenv} {deployment_loc}"
+  - ":MOVE -f ../{_sdpm_archive} {deployment_loc}"
+  - ":WRITE {env_sdpm_rc_file} {deployment_loc}/sdpm.rc"
+  - ":CD --pop" # Go back to where we were
+
+
+dev:
+  # -- Augment the development environment when testing locally
+  ignore:
+    - '{package}_env'
+
+  env:
+    '{package|upp}_ENV_PATH': '{build_dir}/buildenv/{buildenv_activate_location}'
+
+
+build:
 
   # Once built, we don't want to remove the environment between
   # each subsequent build
@@ -89,3 +153,26 @@ build:
   pre_build:
     - ':FUNC build_environment()'
 
+
+raw:
+
+  sdpm_deploy:
+
+    help: |
+      Note: Overloaded from sdpm_package template via the virtualenv template.
+      Deploy built files as an sdpm capable pacakge. Must build
+      locally before running this command for that's what will
+      be deployed.
+
+    arguments:
+      - [sdpm_version, Major.Minor.Subminor version to deploy to, '[0-9]+\.[0-9]+\.[0-9]+']
+      - [sdpm_fix_number, "#### fix number", '[0-9]{4}']
+
+    flags:
+      - ["skip-main", "Skip deploying the main package"]
+      - ["deploy-environment", "Deploy the build environment into it's own package"]
+
+    commands:
+      - ["!--skip-main", ":FUNC sdpm_deploy_simple({sdpm_version}, {sdpm_fix_number})"]
+      # Check if we're also deploying the environment
+      - ["--deploy-environment", ":FUNC sdpm_deploy_environment({sdpm_version}, {sdpm_fix_number})"]
