@@ -8,13 +8,13 @@ props:
     unix: /mnt/isilon2
     windows: //isilon2
 
-  # _sdpm_platform_arch:
-  #   linux: x86_64-Linux
-  #   windows: AMD64-Windows
+  _sdpm_platform_arch:
+    linux: x86_64-Linux
+    windows: AMD64-Windows
 
-  # _sdpm_archive:
-  #   unix: sdpm.tar.gz
-  #   windows: sdpm.zip
+  _sdpm_archive:
+    unix: sdpm.tar.gz
+    windows: sdpm.zip
 
   _sdpm_deploy_location: "{_sdpm_platform_server}/s3d/resources/sw/packages/{package}"
 
