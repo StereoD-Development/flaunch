@@ -42,7 +42,7 @@ props:
           f.write(out)
 
   # -- Used for the sdpm_package to ignore the buildenv folder
-  sdpm_extra_zip_copy_args: "--exclude {buildenv}"
+  sdpm_extra_zip_copy_args: "--exclude {buildenv} --exclude __pycache__ --exclude *.pyc"
 
   # sdpm.rc file for virutalenvs
   buildenv_activate_location:
@@ -99,9 +99,9 @@ func__build_environment():
       - ':SET "virtualenv --system-site-packages -p \"{python_exe}\"" venv_module'
       - '{python_exe} -m {venv_module...} "{build_dir}/{buildenv}"'
       - windows:
-          - '{build_dir}/{buildenv}/scripts/activate.bat && pip install --upgrade pip {pypi_server...}'
+          # - '{build_dir}/{buildenv}/scripts/activate.bat && pip install --upgrade pip {pypi_server...}'
           - ':COPY "{python_exe}/../DLLs/*" "{build_dir}/{buildenv}/DLLs" --force'
-          - ':COPY "{python_exe}/../Lib/*" "{build_dir}/{buildenv}/Lib"  --exclude "__pycache__" --exclude "site-packages" --force'
+          - ':COPY -n "{python_exe}/../Lib/*" "{build_dir}/{buildenv}/Lib"  --exclude "__pycache__" --exclude "site-packages" --exclude "*.pyc" --force'
           - ':PYTHON reloc_activate'
         unix: 'bash -c ''source "{build_dir}/buildenv/bin/activate" && pip install --upgrade pip {pypi_server}'''
 
@@ -110,9 +110,10 @@ func__build_environment():
       - unix: ':PYTHON _chmod_file'
         windows: []
 
-  - windows: '{build_dir}/{buildenv}/scripts/activate.bat && pip install -r {requirements_file} {pypi_server...}'
-    unix: 'bash -c ''source "{build_dir}/buildenv/bin/activate" && pip install {pypi_server}  -r {requirements_file}'''
-
+  - ['!--skip-pip', {
+      "windows": '{build_dir}/{buildenv}/scripts/activate.bat && pip install -r {requirements_file} {pypi_server...}',
+      "unix": 'bash -c ''source "{build_dir}/buildenv/bin/activate" && pip install {pypi_server}  -r {requirements_file}'''
+    }]
 
 
 
@@ -171,8 +172,9 @@ raw:
     flags:
       - ["skip-main", "Skip deploying the main package"]
       - ["deploy-environment", "Deploy the build environment into it's own package"]
+      - ["winlin", Deploy for both Windows and Linux at the same time]
 
     commands:
-      - ["!--skip-main", ":FUNC sdpm_deploy_simple({sdpm_version}, {sdpm_fix_number})"]
+      - ["!--skip-main", ":SUPER sdpm_package.raw.sdpm_deploy.commands"]
       # Check if we're also deploying the environment
       - ["--deploy-environment", ":FUNC sdpm_deploy_environment({sdpm_version}, {sdpm_fix_number})"]

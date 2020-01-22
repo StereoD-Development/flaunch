@@ -35,9 +35,10 @@ class CopyCommand(_BuildCommand):
         """
         Copying files has many-a-caveat
         """
-        parser.add_argument('-x', '--exclude', nargs='+', help="file patterns to ignore")
+        parser.add_argument('-x', '--exclude', action='append', help="file patterns to ignore")
         parser.add_argument('-m', '--make-dirs', action='store_true', help='Create the destination directory')
         parser.add_argument('-f', '--force', action='store_true', help='Overwrite any files that already exist')
+        parser.add_argument('-n', '--nosiey', action='store_true', help='Verbose logging of each file managed')
         parser.add_argument('source', help='The source location')
         parser.add_argument('destination', help='The destination location')
 
@@ -69,8 +70,6 @@ class CopyCommand(_BuildCommand):
 
         logging.info('Copying: {} -> {}'.format(self.data.source, self.data.destination))
 
-        # This could probably use some clean up but it'll get the job done for now
-
         data = glob.glob(self.data.source)
 
         root = ''
@@ -87,38 +86,68 @@ class CopyCommand(_BuildCommand):
         elif os.path.isdir(self.data.destination) and os.path.isfile(data[0]):
             destination = os.path.join(self.data.destination, os.path.basename(data[0]))
 
-        ignore_patterns = self.data.exclude or []
-        ignore_func = shutil.ignore_patterns(*ignore_patterns)
+        ignore = self.data.exclude or []
+        # ignore_func = shutil.ignore_patterns(*ignore_patterns)
 
-        for d in data:
-            base = d.replace('\\', '/').replace(root, '')
+        logging.info(ignore)
 
-            # For globbing, we have to make sure the destination is up to date
-            if root:
-                if base.startswith('/'):
-                    base = base[1:]
-                dest = destination + '/' + base
-            else:
-                dest = destination
+        def _clean(p):
+            p = p.replace('\\', '/')
+            if not p.startswith('//'):
+                p = p.lstrip('/')
+            return p
 
-            ok = True
-            for pattern in ignore_patterns:
-                if fnmatch.fnmatch(base, pattern):
-                    ok = False
-                    break
-            if not ok:
+        def _copy_down(base, files, dest_dir):
+            if not os.path.exists(dest_dir):
+                if self.data.nosiey:
+                    logging.info("Make Dir: {}".format(dest_dir))
+                os.makedirs(dest_dir)
+
+            for file in files:
+
+                if any(fnmatch.fnmatch(file, p) for p in ignore):
+                    continue
+
+                fpath = _clean(os.path.join(base, file))
+                if any(fnmatch.fnmatch(fpath, p) for p in ignore):
+                    continue
+
+                if os.path.isdir(fpath):
+                    files = os.listdir(fpath)
+                    if not files:
+                        output = os.path.join(dest_dir, file)
+                        if not os.path.isdir(output):
+                            if self.data.nosiey:
+                                logging.info("Make Dir: {}".format(output))
+                            os.makedirs(output)
+                    else:
+                        _copy_down(fpath, files, _clean(os.path.join(dest_dir, file)))
+
+                else:
+                    output = os.path.join(dest_dir, file)
+                    if os.path.exists(output) and self.data.force:
+                        os.unlink(output)
+
+                    if self.data.nosiey:
+                        logging.info("Copy: {} -> {}".format(fpath, output))
+                    shutil.copyfile(fpath, output)
+
+
+        for file_name in data:
+            file_name = file_name.replace('\\', '/')
+
+            if any(fnmatch.fnmatch(os.path.basename(file_name), p) for p in ignore):
                 continue
 
-            if os.path.exists(dest) and self.data.force:
-                if os.path.isfile(dest):
-                    os.unlink(dest)
-                else:
-                    shutil.rmtree(dest)
+            if any(fnmatch.fnmatch(file_name, p) for p in ignore):
+                continue
 
-            if os.path.isdir(d):
-                shutil.copytree(d, dest, symlinks=True, ignore=ignore_func)
+            if os.path.isdir(file_name):
+                _copy_down(file_name, os.listdir(file_name), os.path.join(destination, os.path.basename(file_name)))
+            elif os.path.exists(file_name):
+                _copy_down(os.path.dirname(file_name), [os.path.basename(file_name)], destination)
             else:
-                shutil.copy2(d, dest)
+                raise IOError('File not found: {}'.format(file_name))
 
 
 class MoveCommand(_BuildCommand):

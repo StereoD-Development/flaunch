@@ -90,7 +90,7 @@ raw:
       - ":SET /mnt/vfxbox/_FLUX/flaunch_packages/{pkg} vfxbox_repo"
 
       #
-      # Windows vd. Linux differences
+      # Windows vs. Linux differences
       #
       - ["--windows", ":SET AMD64-Windows arch", ":SET x86_64-Linux arch"]
       - ":CD {package_base}/{arch}"
@@ -134,4 +134,3 @@ raw:
       - ["--windows", ":SET Windows arch", ":SET Linux arch"]
       - ":SET /mnt/vfxbox/_FLUX/flaunch_packages/{pkg} vfxbox_repo"
       - ":COPY --force --make-dirs {package_base}/{arch}/{version}/{pkg}.{version}.zip {vfxbox_repo}/{arch}"
-

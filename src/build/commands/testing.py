@@ -43,7 +43,12 @@ class PyCoverageCommand(_BuildCommand):
         Execute a given test environment
         """
         import coverage
-        cov = coverage.Coverage()
+
+        try:
+            cov = coverage.Coverage() # API changed over time
+        except:
+            cov = coverage.coverage()
+
         cov.start()
 
         mod = utils.load_from_source(self.data.script)
