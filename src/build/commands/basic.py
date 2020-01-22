@@ -89,8 +89,6 @@ class CopyCommand(_BuildCommand):
         ignore = self.data.exclude or []
         # ignore_func = shutil.ignore_patterns(*ignore_patterns)
 
-        logging.info(ignore)
-
         def _clean(p):
             p = p.replace('\\', '/')
             if not p.startswith('//'):

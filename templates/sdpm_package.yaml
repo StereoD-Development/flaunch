@@ -161,6 +161,7 @@ raw:
 
     flags:
       - ["winlin", Deploy for both Windows and Linux at the same time]
+      - ["transfer", "Auto-transfer the deployment (Use winlin and this to do it all)"]
 
     commands:
       - ":FUNC sdpm_deploy_simple({sdpm_version}, {sdpm_fix_number}, {platform})"
@@ -171,7 +172,12 @@ raw:
             unix: ":FUNC sdpm_deploy_simple({sdpm_version}, {sdpm_fix_number}, Windows)"
           }
         ]
-
+      - ["--transfer",
+          [
+            ":SET {sdpm_version}/{sdpm_fix_number} sdpm_full_version",
+            ":FUNC sdpm_transfer_to_facilities({sdpm_full_version})"
+          ]
+        ]
 
   sdpm_transfer:
 
