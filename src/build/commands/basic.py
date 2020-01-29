@@ -83,16 +83,17 @@ class CopyCommand(_BuildCommand):
             if not os.path.exists(destination):
                 os.makedirs(destination)
 
-        elif os.path.isdir(self.data.destination) and os.path.isfile(data[0]):
-            destination = os.path.join(self.data.destination, os.path.basename(data[0]))
+#        elif os.path.isdir(self.data.destination) and os.path.isfile(data[0]):
+#            print ("DD:", destination)
+#            destination = os.path.join(self.data.destination, os.path.basename(data[0]))
 
         ignore = self.data.exclude or []
         # ignore_func = shutil.ignore_patterns(*ignore_patterns)
 
         def _clean(p):
             p = p.replace('\\', '/')
-            if not p.startswith('//'):
-                p = p.lstrip('/')
+            #if not p.startswith('//'):
+            #    p = p.lstrip('/')
             return p
 
         def _copy_down(base, files, dest_dir):

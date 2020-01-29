@@ -164,7 +164,7 @@ def zip_files(name, files, root=None, mode='w', ignore=[], noisey=False):
     root = root.replace("\\", "/")
 
     def _clean(p):
-        return p.replace('\\', '/').lstrip('/')
+        return p.replace('\\', '/')#.lstrip('/')
 
     with ZFile(name, mode) as zfile:
         for file_name in files:
@@ -294,7 +294,7 @@ def tar_files(name, files, root=None, mode='w', ignore=[], noisey=False):
     root = root.replace("\\", "/")
 
     def _clean(p):
-        return p.replace('\\', '/').lstrip('/')
+        return p.replace('\\', '/')#.lstrip('/')
 
     comp_mode = ''
     if name.endswith('.tar.gz') or name.endswith('.tgz'):
