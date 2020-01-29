@@ -172,11 +172,15 @@ def launch_application(args):
         # application.
         #
         this_app = resolved_launch[-1]
-        executable = pkgrep.resolve_exec(this_app, env)
         if not arguments and this_app.default_args():
             arguments = this_app.default_args()
+        executable, args_consumed = pkgrep.resolve_exec(this_app, env, arguments)
 
-    utils.run_(shlex.split(executable.replace('\\', '/')) + arguments, env, args.verbose)
+    full_command = shlex.split(executable.replace('\\', '/'))
+    if not args_consumed:
+        full_command = full_command + arguments
+
+    utils.run_(full_command, env, args.verbose)
     return 0
 
 
