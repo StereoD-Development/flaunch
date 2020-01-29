@@ -41,6 +41,18 @@ props:
       {activate_modifications}
       with open(script_loc, "w") as f:
           f.write(out)
+    unix: |
+      import os, sys
+      script_loc = "{build_dir}/{buildenv}/bin/activate"
+      get_dir = 'SOURCE="$BASH_SOURCE[0]"\nDIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"'
+      with open(script_loc, "r") as f:
+          out = f.read()
+      out = out.replace("VIRTUAL_ENV={build_dir}/{buildenv}",
+                        "VIRTUAL_ENV=$DIR/..")
+      {activate_modifications}
+      with open(script_loc, "w") as f:
+          f.write(out)
+
 
   activate_modifications: ""
 
@@ -57,7 +69,7 @@ props:
               import os
               activate_location = os.path.join(self._path, "{buildenv_activate_location}")
               return { "PATH" : [activate_location],
-                       "{package|upp}_ENV_PATH" : activate_location }
+                       "{package|upp}_ENV_PATH" : [activate_location] }
 
 
 # ------------------------------------------------------------------------------------
@@ -106,7 +118,8 @@ func__build_environment():
           - ':COPY "{python_exe}/../DLLs/*" "{build_dir}/{buildenv}/DLLs" --force'
           - ':COPY -n "{python_exe}/../Lib/*" "{build_dir}/{buildenv}/Lib"  --exclude "__pycache__" --exclude "site-packages" --exclude "*.pyc" --force'
           - ':PYTHON reloc_activate'
-        unix: 'bash -c ''source "{build_dir}/buildenv/bin/activate" && pip install --upgrade pip {pypi_server}'''
+        unix:
+          - ':PYTHON reloc_activate'
 
       # TODO Only use required flaunch packages
       - ':ZIP -x -n {_flaunch_root_dir}/py/flaunch_packages.zip -o {build_dir}/{buildenv}/Lib/site-packages'
