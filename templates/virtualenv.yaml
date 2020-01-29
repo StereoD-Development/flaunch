@@ -38,8 +38,11 @@ props:
           out = f.read()
       out = out.replace("VIRTUAL_ENV={build_dir|bs}\\{buildenv}",
                         "VIRTUAL_ENV=%~dp0..")
+      {activate_modifications}
       with open(script_loc, "w") as f:
           f.write(out)
+
+  activate_modifications: ""
 
   # -- Used for the sdpm_package to ignore the buildenv folder
   sdpm_extra_zip_copy_args: "--exclude {buildenv} --exclude __pycache__ --exclude *.pyc"
@@ -129,7 +132,7 @@ func__sdpm_deploy_environment(version, fix):
   - ":CD {complete_files}"
   - windows: ":ZIP ../{_sdpm_archive} -f ./{buildenv} -n"
     unix: tar -cvzf ../{_sdpm_archive} ./{buildenv}*
-  - ":COPY -f {build_dir}/{buildenv} {deployment_loc}"
+  - ":COPY -f {build_dir}/{buildenv}/* {deployment_loc}"
   - ":MOVE -f ../{_sdpm_archive} {deployment_loc}"
   - ":WRITE {env_sdpm_rc_file} {deployment_loc}/sdpm.rc"
   - ":CD --pop" # Go back to where we were
