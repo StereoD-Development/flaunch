@@ -144,7 +144,10 @@ func__sdpm_deploy_environment(version, fix):
   - ":FUNC get_complete_files_path()"
   - ":CD {complete_files}"
   - windows: ":ZIP ../{_sdpm_archive} -f ./{buildenv} -n"
-    unix: tar -cvzf ../{_sdpm_archive} ./{buildenv}*
+    unix:
+      - ":CD {buildenv}"
+      - "bash -c 'tar -cvzf ../../{_sdpm_archive} *'"
+      - ":CD --pop"
   - ":COPY -f {build_dir}/{buildenv}/* {deployment_loc}"
   - ":MOVE -f ../{_sdpm_archive} {deployment_loc}"
   - ":WRITE {env_sdpm_rc_file} {deployment_loc}/sdpm.rc"
