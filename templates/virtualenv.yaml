@@ -44,11 +44,11 @@ props:
     unix: |
       import os, sys
       script_loc = "{build_dir}/{buildenv}/bin/activate"
-      get_dir = 'SOURCE="$BASH_SOURCE[0]"\nDIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"'
+      get_dir = 'SOURCE="$BASH_SOURCE[0]"\nDIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"\n'
       with open(script_loc, "r") as f:
           out = f.read()
-      out = out.replace("VIRTUAL_ENV={build_dir}/{buildenv}",
-                        "VIRTUAL_ENV=$DIR/..")
+      out = out.replace("VIRTUAL_ENV=\"{build_dir}/{buildenv}\"",
+                        get_dir + "VIRTUAL_ENV=\"$DIR/..\"")
       {activate_modifications}
       with open(script_loc, "w") as f:
           f.write(out)
@@ -146,7 +146,10 @@ func__sdpm_deploy_environment(version, fix):
   - ":FUNC get_complete_files_path()"
   - ":CD {complete_files}"
   - windows: ":ZIP ../{_sdpm_archive} -f ./{buildenv} -n"
-    unix: tar -cvzf ../{_sdpm_archive} ./{buildenv}*
+    unix:
+      - ":CD {buildenv}"
+      - "bash -c 'tar -cvzf ../../{_sdpm_archive} *'"
+      - ":CD --pop"
   - ":COPY -f {build_dir}/{buildenv}/* {deployment_loc}"
   - ":MOVE -f ../{_sdpm_archive} {deployment_loc}"
   - ":WRITE {env_sdpm_rc_file} {deployment_loc}/sdpm.rc"
