@@ -122,9 +122,9 @@ func__build_environment():
           - ':COPY "{python_exe}/../DLLs/*" "{build_dir}/{buildenv}/DLLs" --force'
           - ':COPY -n "{python_exe}/../Lib/*" "{build_dir}/{buildenv}/Lib"  --exclude "__pycache__" --exclude "site-packages" --exclude "*.pyc" --force'
           # -- venv doesn't know to pull the vcruntime either
+          - ':COPY -n "{python_exe}/../vcruntime{win_runtime_version}.dll" "{build_dir}/{buildenv}/Scripts"'
           - clause: "{include_win_runtime}"
             commands:
-              - ':COPY -n "{python_exe}/../vcruntime{win_runtime_version}.dll" "{build_dir}/{buildenv}/Scripts"'
               - ':COPY -n "C:/Windows/System32/msvcp{win_runtime_version}.dll" "{build_dir}/{buildenv}/Scripts"'
           - ':PYTHON reloc_activate'
         unix:
