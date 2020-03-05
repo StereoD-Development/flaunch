@@ -159,6 +159,7 @@ def launch_application(args):
         logging.debug('-- Done Prepping: {}'.format(launch_json.package))
 
     arguments = args.app_args
+    args_consumed = False
 
     if args.run:
         #

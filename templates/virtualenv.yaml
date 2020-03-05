@@ -117,6 +117,8 @@ func__build_environment():
           # - '{build_dir}/{buildenv}/scripts/activate.bat && pip install --upgrade pip {pypi_server...}'
           - ':COPY "{python_exe}/../DLLs/*" "{build_dir}/{buildenv}/DLLs" --force'
           - ':COPY -n "{python_exe}/../Lib/*" "{build_dir}/{buildenv}/Lib"  --exclude "__pycache__" --exclude "site-packages" --exclude "*.pyc" --force'
+          # -- venv doesn't know to pull the vcruntime either
+          - ':COPY -n "{python_exe}/../vcruntime140.dll" "{build_dir}/{buildenv}/Scripts"'
           - ':PYTHON reloc_activate'
         unix:
           - ':PYTHON reloc_activate'
