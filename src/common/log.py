@@ -3,6 +3,7 @@ Logging utility for the build routines
 """
 from __future__ import absolute_import
 
+import os
 import sys
 import logging
 
@@ -13,6 +14,7 @@ MESSAGE_FORMAT = '[%(asctime)s - %(levelname)s!tabme!]: {}%(message)s'
 DATETIME_FORMAT = '%d/%m/%Y %I:%M:%S %p'
 DEFAULT_HANDLER = None
 FILE_HANDLER = None
+VERBOSE_MODE = False
 
 CURRENT_INDENT = 0
 
@@ -30,6 +32,14 @@ DEFAULT_FORMAT = FLaunchFormater(
 )
 
 
+def is_verbose():
+    """
+    :return: bool if we're in a verbose command
+    """
+    global VERBOSE_MODE
+    return VERBOSE_MODE
+
+
 def start(verbose, output_file=None):
     """
     Initialize logging based on the verbosity. Augment the message
@@ -40,8 +50,13 @@ def start(verbose, output_file=None):
     global DEFAULT_HANDLER
     global FILE_HANDLER
     global DEFAULT_FORMAT
+    global VERBOSE_MODE
 
+    VERBOSE_MODE = verbose
     level = logging.INFO if not verbose else logging.DEBUG
+    if os.environ.get('FLAUNCH_VERBOSE', '').lower() not in ('', 'off', 'none', 'no'):
+        level = logging.DEBUG
+        VERBOSE_MODE = True
 
     logger = logging.getLogger()
     logger.setLevel(level)

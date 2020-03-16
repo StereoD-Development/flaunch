@@ -163,6 +163,7 @@ class BuildCommandParser(object):
                 if isinstance(command_info, (dict, PlatformDict)):
                     command_info_raw = command_info.to_dict()
                     commands_from_dict = command_info_raw.get('commands')
+                    else_commands_from_dict = command_info_raw.get('else_commands')
 
                     #
                     # If we're still a dictionary, then we'll
@@ -172,15 +173,20 @@ class BuildCommandParser(object):
                         python_to_eval = self._build_file.expand(command_info_raw['clause'])
                         logging.debug('Evaluating: {}'.format(python_to_eval))
 
-                        is_command = python_to_eval[:python_to_eval.index('(')] in local_commands
+                        is_command = False
+                        if '(' in python_to_eval:
+                            is_command = python_to_eval[:python_to_eval.index('(')].split(" ")[-1] in local_commands
                         if is_command and python_to_eval.endswith(')'):
                             # All of the quick commands take the build file as the last arg
                             python_to_eval = python_to_eval[:-1] + ', build_file)'
 
-
                         local_commands['build_file'] = self._build_file
                         if not (eval(python_to_eval, local_commands)):
-                            return # - Didn't work
+                            if else_commands_from_dict:
+                                # We didn't suceed but we have false conditions
+                                commands_from_dict = else_commands_from_dict
+                            else:
+                                continue # - Nothing to do
 
                     if isinstance(commands_from_dict, (list, tuple)):
                         if self._exec_internal(commands_from_dict) == _BuildCommand.RETURN_COMMAND:

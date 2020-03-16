@@ -1,0 +1,208 @@
+#
+# Tools for building a deployable virtual environment
+#
+
+include:
+  - sdpm_package
+
+props:
+
+  _chmod_file: |
+    import os, sys, stat
+    os.chmod("{build_dir}/buildenv/bin/activate", stat.S_IRWXO | stat.S_IRWXU)
+    
+
+  # -- Python install data
+  _py_default_location:
+    unix: "/usr/bin/python{use_python_version}"
+    windows: 'C:/Python{use_python_version}/python.exe'
+
+  _py_backup_location:
+    unix: "/usr/bin/python{use_python_version}"
+    windows: '{userprofile}/AppData/Local/Programs/Python/Python{use_python_version}/python.exe'
+
+  # -- Publish properties to modify
+  use_python_version:
+    unix: "3.7"
+    windows: "37"
+
+  buildenv: 'buildenv'
+  pypi_server: "--index-url=http://sdt-pypi --trusted-host sdt-pypi"
+  requirements_file: "{path}/requirements/requirements.txt"
+
+  reloc_activate:
+    windows: |
+      import os, sys
+      script_loc = "{build_dir}/{buildenv}/Scripts/activate.bat"
+      with open(script_loc, "r") as f:
+          out = f.read()
+      out = out.replace("VIRTUAL_ENV={build_dir|bs}\\{buildenv}",
+                        "VIRTUAL_ENV=%~dp0..")
+      {activate_modifications}
+      with open(script_loc, "w") as f:
+          f.write(out)
+    unix: |
+      import os, sys
+      script_loc = "{build_dir}/{buildenv}/bin/activate"
+      get_dir = 'SOURCE="$BASH_SOURCE[0]"\nDIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"\n'
+      with open(script_loc, "r") as f:
+          out = f.read()
+      out = out.replace("VIRTUAL_ENV=\"{build_dir}/{buildenv}\"",
+                        get_dir + "VIRTUAL_ENV=\"$DIR/..\"")
+      {activate_modifications}
+      with open(script_loc, "w") as f:
+          f.write(out)
+
+
+  activate_modifications: ""
+
+  # -- Used for the sdpm_package to ignore the buildenv folder
+  sdpm_extra_zip_copy_args: "--exclude {buildenv} --exclude __pycache__ --exclude *.pyc"
+
+  # sdpm.rc file for virutalenvs
+  buildenv_activate_location:
+    windows: Scripts
+    unix: bin
+  env_sdpm_rc_file: |
+      class SdpmRc(SdpmRcBase):
+          def pathEnv(self):
+              import os
+              activate_location = os.path.join(self._path, "{buildenv_activate_location}")
+              return { "PATH" : [activate_location],
+                       "{package|upp}_ENV_PATH" : [activate_location] }
+
+  # -- Windows Runtime Options
+  include_win_runtime: "False"
+  win_runtime_version: "140"
+
+
+# ------------------------------------------------------------------------------------
+# -- Functions
+
+
+# -- Function for finding a valid python version.
+#
+# This will attempt assigning the value of a variable to the location
+# of the python executable within this machine
+#
+# :param variable: The name of the variable to set
+#
+func__get_python_version(variable):
+  - clause: 'file_exists("{_py_default_location}")'
+    commands: ":SET -g {_py_default_location} {variable}"
+    else_commands:
+      clause: 'file_exists("{_py_backup_location}")'
+      commands: ":SET -g {_py_backup_location} {variable}"
+      else_commands: ":FAIL Cannot locate valid python install"
+
+
+
+# -- Function called to actually build the virtual environment
+#
+#  This will handle finding the python executable, moving all required files
+#  into place, downloading required thirdparty tools, and setting permissions
+#  on files where required.
+#
+func__build_environment():
+
+  # Find the version of python to use
+  - clause: 'env_set("PYTHON_EXEC_PATH")'
+    commands: ":SET {python_exec_path} python_exe"
+    else_commands: ":FUNC get_python_version(python_exe)"
+
+  # Once found, check if we want a "clean slate" env
+  - ["--rebuild", ':DEL {build_dir}/{buildenv}']
+  - clause: "not file_exists('{build_dir}/{buildenv}')"
+    commands:
+      - ':PRINT Creating virtual environment in {build_dir}'
+      - ':SET "virtualenv --system-site-packages -p \"{python_exe}\"" venv_module'
+      - '{python_exe} -m {venv_module...} "{build_dir}/{buildenv}"'
+      - windows:
+          # - '{build_dir}/{buildenv}/scripts/activate.bat && pip install --upgrade pip {pypi_server...}'
+          - ':COPY "{python_exe}/../DLLs/*" "{build_dir}/{buildenv}/DLLs" --force'
+          - ':COPY -n "{python_exe}/../Lib/*" "{build_dir}/{buildenv}/Lib"  --exclude "__pycache__" --exclude "site-packages" --exclude "*.pyc" --force'
+          # -- venv doesn't know to pull the vcruntime either
+          - ':COPY -n "{python_exe}/../vcruntime{win_runtime_version}.dll" "{build_dir}/{buildenv}/Scripts"'
+          - clause: "{include_win_runtime}"
+            commands:
+              - ':COPY -n "C:/Windows/System32/msvcp{win_runtime_version}.dll" "{build_dir}/{buildenv}/Scripts"'
+          - ':PYTHON reloc_activate'
+        unix:
+          - ':PYTHON reloc_activate'
+
+      # TODO Only use required flaunch packages
+      - ':ZIP -x -n {_flaunch_root_dir}/py/flaunch_packages.zip -o {build_dir}/{buildenv}/Lib/site-packages'
+      - unix: ':PYTHON _chmod_file'
+        windows: []
+
+  - ['!--skip-pip', {
+      "windows": '{build_dir}/{buildenv}/scripts/activate.bat && pip install -r {requirements_file} {pypi_server...}',
+      "unix": 'bash -c ''source "{build_dir}/buildenv/bin/activate" && pip install {pypi_server}  -r {requirements_file}'''
+    }]
+
+
+
+# -- Function to deploy the environment to it's own sdpm repo
+#
+#  This deploys to {package}_env
+#
+func__sdpm_deploy_environment(version, fix):
+  - ":SET {_sdpm_deploy_location}_env/{sdpm_version}/{sdpm_fix_number}/{_sdpm_platform_arch} deployment_loc"
+  - ":DEL {deployment_loc}"
+  - ":MKDIR -s {deployment_loc}"
+  - ":FUNC get_complete_files_path()"
+  - ":CD {complete_files}"
+  - windows: ":ZIP ../{_sdpm_archive} -f ./{buildenv} -n"
+    unix:
+      - ":CD {buildenv}"
+      - "bash -c 'tar -cvzf ../../{_sdpm_archive} *'"
+      - ":CD --pop"
+  - ":COPY -f {build_dir}/{buildenv}/* {deployment_loc}"
+  - ":MOVE -f ../{_sdpm_archive} {deployment_loc}"
+  - ":WRITE {env_sdpm_rc_file} {deployment_loc}/sdpm.rc"
+  - ":CD --pop" # Go back to where we were
+
+
+dev:
+  # -- Augment the development environment when testing locally
+  ignore:
+    - '{package}_env'
+
+  env:
+    '{package|upp}_ENV_PATH': '{build_dir}/buildenv/{buildenv_activate_location}'
+
+
+build:
+
+  # Once built, we don't want to remove the environment between
+  # each subsequent build
+  save_between_builds:
+    - "{build_dir}/{buildenv}*"
+
+  pre_build:
+    - ':FUNC build_environment()'
+
+
+raw:
+
+  sdpm_deploy:
+
+    help: |
+      Note: Overloaded from sdpm_package template via the virtualenv template.
+      Deploy built files as an sdpm capable pacakge. Must build
+      locally before running this command for that's what will
+      be deployed.
+
+    arguments:
+      - [sdpm_version, Major.Minor.Subminor version to deploy to, '[0-9]+\.[0-9]+\.[0-9]+']
+      - [sdpm_fix_number, "#### fix number", '[0-9]{4}']
+
+    flags:
+      - ["skip-main", "Skip deploying the main package"]
+      - ["deploy-environment", "Deploy the build environment into it's own package"]
+      - ["winlin", Deploy for both Windows and Linux at the same time]
+
+    commands:
+      - ["!--skip-main", ":SUPER sdpm_package.raw.sdpm_deploy.commands"]
+      # Check if we're also deploying the environment
+      - ["--deploy-environment", ":FUNC sdpm_deploy_environment({sdpm_version}, {sdpm_fix_number})"]

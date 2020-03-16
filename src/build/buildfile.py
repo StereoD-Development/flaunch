@@ -8,7 +8,16 @@ import sys
 import logging
 from copy import deepcopy
 
-from common.utils import yaml
+try:
+    import yaml
+except:
+    try:
+        import pureyaml as yaml # Current version is broken but you never know
+        yaml.safe_load = yaml.load
+    except:
+        raise ImportError("A yaml parser is required to use fbuild - " \
+                          "developers should use \"pip install PyYAML\"")
+
 from common.platformdict import PlatformDict
 from common.abstract import _AbstractFLaunchData, FLaunchDataError
 from common import utils
@@ -37,6 +46,10 @@ class BuildFile(_AbstractFLaunchData):
         self._templates = {}
         self._manager = manager
         self._load()
+        self.add_attribute(
+            '_fbuild_root_dir',
+            os.environ.get('_FLAUNCH_ROOT_DIR')
+        )
 
     def get_manager(self):
         """
@@ -195,7 +208,8 @@ class BuildFile(_AbstractFLaunchData):
         if not isinstance(include, (list, tuple)):
             raise TypeError('build.yaml -> include: must be a list of plugins')
 
-        if self._name != 'global':
+        if len(include) == 0 and self._name != 'global':
+            # Add global to the root list
             include.insert(0, 'global')
 
         for plugin in include:
@@ -208,6 +222,7 @@ class BuildFile(_AbstractFLaunchData):
 
             # FIXME: Need to check for cyclic dependencies
             plugin_bf = BuildFile(self.package, plugin_filepath, manager=self._manager, name=plugin)
+            self._templates.update(plugin_bf.included_templates)
             self._templates[plugin] = plugin_bf
 
             self._data = PlatformDict(

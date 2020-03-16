@@ -135,12 +135,12 @@ class ConnectionManager(object):
             if self._test_connection(self._settings[self.LAST_KNOWN]):
                 return self._settings[self.LAST_KNOWN]
 
-            for endpoint in self._endpoints():
-                endpoint = endpoint.strip()
-                if self._test_connection(endpoint):
-                    # We've found a viable connection
-                    self._save_setting(self.LAST_KNOWN, endpoint)
-                    return endpoint
+        for endpoint in self._endpoints():
+            endpoint = endpoint.strip()
+            if self._test_connection(endpoint):
+                # We've found a viable connection
+                self._save_setting(self.LAST_KNOWN, endpoint)
+                return endpoint
 
         # -- If we've made it here, none of the endpoints have
         # panned out. That's no good. Need to fail

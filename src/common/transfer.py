@@ -20,6 +20,7 @@ Pop in any identifying markers you need.
 from __future__ import absolute_import
 
 import os
+import time
 import sys
 import copy
 import logging
@@ -143,6 +144,7 @@ def transfer_package(
                 })
 
             logging.info('Initialize Transfer: {} -> {}'.format(source, facility))
+            print("Transfer info", transfer_info)
             result = requests.post(
                 TRANSFER_ENDPOINT,
                 json=transfer_info,
@@ -164,6 +166,7 @@ def transfer_package(
             wait_time = WAIT_TIMEOUT
             while wait_time > 0:
                 with server.transfer_lock:
+                    print("transfer to", server.transfer_to)
                     if len(server.transfer_to) == 0:
                         break
 

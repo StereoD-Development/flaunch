@@ -10,6 +10,7 @@ import sys
 import platform
 import logging
 import argparse
+import shlex
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -146,17 +147,19 @@ def launch_application(args):
     #
     # Because this is a proper package, we also prep our launchable package!
     #
+    resolved_launch = []
     if not args.run:
         resolved_launch = pkgrep.resolve_packages(
             [args.application], packages, builds=build_locations, all_ljsons=launch_jsons
         )
 
-        for launch_json in resolved_launch + list(launch_jsons):
-            logging.debug('Prepping: {}'.format(launch_json.package))
-            pkgrep.prep_env(launch_json, env)
-            logging.debug('-- Done Prepping: {}'.format(launch_json.package))
+    for launch_json in resolved_launch + list(launch_jsons):
+        logging.debug('Prepping: {}'.format(launch_json.package))
+        pkgrep.prep_env(launch_json, env)
+        logging.debug('-- Done Prepping: {}'.format(launch_json.package))
 
     arguments = args.app_args
+    args_consumed = False
 
     if args.run:
         #
@@ -165,16 +168,20 @@ def launch_application(args):
         executable = args.application
     else:
         #
-        # Fire the applicaiton up! Get the exectuable within our launch.json. When
+        # Fire the application up! Get the exectuable within our launch.json. When
         # resolving a package, the last one should _always_ be the launchable
         # application.
         #
         this_app = resolved_launch[-1]
-        executable = pkgrep.resolve_exec(this_app, env)
         if not arguments and this_app.default_args():
             arguments = this_app.default_args()
+        executable, args_consumed = pkgrep.resolve_exec(this_app, env, arguments)
 
-    utils.run_([executable] + arguments, env, args.verbose)
+    full_command = shlex.split(executable.replace('\\', '/'))
+    if not args_consumed:
+        full_command = full_command + arguments
+
+    utils.run_(full_command, env, args.verbose)
     return 0
 
 

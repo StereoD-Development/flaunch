@@ -1,5 +1,7 @@
 """
 ZipFile utilities for flaunch - perhaps one day adding tarfile support too
+
+Also Tar files!
 """
 
 import os
@@ -27,7 +29,7 @@ def _zip_symlink(filepath, zippath, zfile):
     """
     assert os.path.islink(filepath)
     linkpath = os.readlink(filepath)
-    
+
     # 0 is windows, 3 is unix (e.g., mac, linux) [and 1 is Amiga!]
     createsystem = 0 if sys.platform.startswith('win') else 3 
 
@@ -130,16 +132,9 @@ class ZFile(object):
         if self._mode == 'r':
             self._zfile = zipfile.ZipFile(self._name, self._mode)
         else:
-            try:
-                # Probably a windows machine?
-                self._zfile = zipfile.ZipFile(
-                    self._name, self._mode, compression=zipfile.ZIP_LZMA
-                )
-            except Exception as e:
-                # Probably a unix machine
-                self._zfile = zipfile.ZipFile(
-                    self._name, self._mode, compression=zipfile.ZIP_DEFLATED
-                )
+            self._zfile = zipfile.ZipFile(
+                self._name, self._mode, compression=zipfile.ZIP_DEFLATED
+            )
 
         return self._zfile
 
@@ -166,60 +161,61 @@ def zip_files(name, files, root=None, mode='w', ignore=[], noisey=False):
     if root is None:
         root = ''
 
+    root = root.replace("\\", "/")
+
     def _clean(p):
-        return p.replace('\\', '/').lstrip('/')
+        return p.replace('\\', '/')#.lstrip('/')
 
     with ZFile(name, mode) as zfile:
         for file_name in files:
             file_name = file_name.replace("\\", "/")
 
-            all_files = []
+
+            if any(fnmatch.fnmatch(file_name, p) for p in ignore):
+                continue
+
+            if any(fnmatch.fnmatch(os.path.basename(file_name), p) for p in ignore):
+                continue
+
+            def _zip_action(base, files):
+                """
+                Recurse and do the action required
+                """
+                for file in files:
+                    if any(fnmatch.fnmatch(file, p) for p in ignore):
+                        continue
+
+                    fpath = _clean(os.path.join(base, file))
+                    if any(fnmatch.fnmatch(fpath, p) for p in ignore):
+                        continue
+
+                    if os.path.isdir(fpath):
+
+                        files = os.listdir(fpath)
+                        if not files:
+                            if noisey:
+                                logging.info("Zipping: {}".format(fpath))
+                            directory_path = _clean(fpath.replace(root, '', 1))
+                            zinfo = zipfile.ZipInfo(directory_path + '/')
+                            zfile.writestr(zinfo, '')
+                        else:
+                            _zip_action(fpath, files)
+
+                    else:
+                        archive_root = _clean(fpath.replace(root, '', 1))
+                        if os.path.islink(fpath):
+                            if noisey:
+                                logging.info("Zipping (symlink): {}".format(fpath))
+                            _zip_symlink(fpath, archive_root, zfile)
+                        else:
+                            if noisey:
+                                logging.info("Zipping: {}".format(fpath))
+                            zfile.write(fpath, archive_root)
+
             if os.path.isdir(file_name):
-                for base, dirs, files in os.walk(file_name):
-
-                    #
-                    # Check for empty directories
-                    #
-                    for dir_ in dirs:
-                        for pattern in ignore:
-                            if fnmatch.fnmatch(dir_, pattern):
-                                break
-                        else:
-                            fn = os.path.join(base, dir_)
-                            if os.listdir(fn) == []:
-                                if noisey:
-                                    logging.info("Zipping: {}".format(fn))
-                                directory_path = _clean(fn.replace(root, '', 1))
-                                zinfo = zipfile.ZipInfo(directory_path + '/')
-                                zfile.writestr(zinfo, '')
-
-                    for file in files:
-
-                        for pattern in ignore:
-                            if fnmatch.fnmatch(file, pattern):
-                                break
-                        else:
-                            fn = os.path.join(base, file)
-                            archive_root = _clean(fn.replace(root, '', 1))
-                            if os.path.islink(fn):
-                                if noisey:
-                                    logging.info("Zipping: {}".format(fn))
-                                _zip_symlink(fn, archive_root + "/" + file, zfile)
-                            else:
-                                if noisey:
-                                    logging.info("Zipping: {}".format(fn))
-                                zfile.write(fn, archive_root)
-
-            elif os.path.islink(file_name):
-                if noisey:
-                    logging.info("Zipping: {}".format(file_name))
-                _zip_symlink(file_name, _clean(file_name.replace(root, '', 1)), zfile)
-
-            elif os.path.isfile(file_name):
-                if noisey:
-                    logging.info("Zipping: {}".format(file_name))
-                zfile.write(file_name, file_name.replace(root, '', 1))
-
+                _zip_action(file_name, os.listdir(file_name))
+            elif os.path.exists(file_name):
+                _zip_action(os.path.dirname(file_name), [os.path.basename(file_name)])
             else:
                 raise RuntimeError('File not found: {}',format(file_name))
 
@@ -229,15 +225,15 @@ def unzip_files(archive, files=[], ignore=[], output=None, noisey=False):
     Extract data from an archive.
     :param archive: Path to a zipped archive that can be opened
     :param files: List of files (unix pattern matched) to extract | None for all
-    :param exclude: When extracing, 
+    :param exclude: When extracing, exclude these files
     :param output: Destination of our archive
     :return: None
     """
     with ZFile(archive, 'r') as zfile:
 
-        def _extract(zinfo):
+        def _extract(zinfo, fn):
             if noisey:
-                logging.info("Extract: {}".format(file_name))
+                logging.info("Extract: {}".format(fn))
 
             if '/' in zinfo.filename:
                 dir_ = os.path.join(output, os.path.dirname(zinfo.filename))
@@ -262,7 +258,7 @@ def unzip_files(archive, files=[], ignore=[], output=None, noisey=False):
             if files:
                 for ok_pattern in files:
                     if fnmatch.fnmatch(file_name, ok_pattern):
-                        _extract(zip_info)
+                        _extract(zip_info, file_name)
             elif ignore:
                 # Check if we want to ignore this file
                 for ignore_pattern in ignore:
@@ -270,6 +266,127 @@ def unzip_files(archive, files=[], ignore=[], output=None, noisey=False):
                         break
                 else:
                     # None of the ignore patterns matched
-                    _extract(zip_info)
+                    _extract(zip_info, file_name)
             else:
-                _extract(zip_info)
+                _extract(zip_info, file_name)
+
+
+# -------------------------------------------------------------------------
+# -- Tar Files
+
+import tarfile
+
+
+def tar_files(name, files, root=None, mode='w', ignore=[], noisey=False):
+    """
+    Build a tar of a given set of files.
+
+    :param name: The name of this archive
+    :param files: list[str] of paths to files
+    :param root: The root directory of our archive to base the files
+    off of
+    :param mode: The mode to open our zip file with ('w' or 'a')
+    """
+
+    if root is None:
+        root = ''
+
+    root = root.replace("\\", "/")
+
+    def _clean(p):
+        return p.replace('\\', '/')#.lstrip('/')
+
+    comp_mode = ''
+    if name.endswith('.tar.gz') or name.endswith('.tgz'):
+        comp_mode = ':gz'
+
+    with tarfile.open(name, mode + comp_mode) as tar:
+
+        def _tar_action(base, files):
+            """
+            Recurse through directories to build the tar file
+            """
+            for file in files:
+                if any(fnmatch.fnmatch(file, p) for p in ignore):
+                    continue
+
+                fpath = _clean(os.path.join(base, file))
+                if any(fnmatch.fnmatch(fpath, p) for p in ignore):
+                    continue
+
+                if os.path.isdir(fpath):
+                    files = os.listdir(fpath)
+                    if not files:
+                        if noisey:
+                            logging.info("Tar Directory: {}".format(fpath))
+                        directory_path = _clean(fpath.replace(root, '', 1))
+                        tar.add(fpath, arcname=directory_path, recursive=False)
+                    else:
+                        _tar_action(fpath, files)
+
+                else:
+                    # -- This is a file (or link)
+                    if noisey:
+                        logging.info("Tar: {}".format(fpath))
+
+                    file_path = _clean(fpath.replace(root, '', 1))
+                    tar.add(fpath, arcname=file_path)
+
+
+        for file_name in files:
+            file_name = file_name.replace("\\", "/")
+
+            if any(fnmatch.fnmatch(file_name, p) for p in ignore):
+                continue
+
+            if any(fnmatch.fnmatch(os.path.basename(file_name), p) for p in ignore):
+                continue
+
+            if os.path.isdir(file_name):
+                _tar_action(file_name, os.listdir(file_name))
+            elif os.path.exists(file_name):
+                _tar_action(os.path.dirname(file_name), [os.path.basename(file_name)])
+            else:
+                raise RuntimeError('File not found: {}',format(file_name))
+
+
+def untar_files(archive, files=[], ignore=[], output=None, noisey=False):
+    """
+    Extract data from an archive.
+    :param archive: Path to a zipped archive that can be opened
+    :param files: List of files (unix pattern matched) to extract | None for all
+    :param exclude: When extracing, exclude these files
+    :param output: Destination of our archive
+    :return: None
+    """
+    with tarfile.open(archive, 'r:*') as tar:
+
+        def _extract(tarinfo, fn):
+            if noisey:
+                logging.info("Extract: {}".format(fn))
+
+            if '/' in tarinfo.name:
+                dir_ = os.path.join(output, os.path.dirname(tarinfo.name))
+                if not os.path.exists(dir_):
+                    os.makedirs(dir_)
+            else:
+                dir_ = '.'
+
+            tar.extract(tarinfo, path=output)
+
+        for tar_info in tar:
+
+            file_name = tar_info.name
+
+            if files:
+                for ok_pattern in files:
+                    if fnmatch.fnmatch(file_name, ok_pattern):
+                        _extract(tar_info, file_name)
+            elif ignore:
+                for ignore_pattern in ignore:
+                    if fnmatch.fnmatch(file_name, ignore_pattern):
+                        break
+                else:
+                    _extract(tar_info, file_name)
+            else:
+                _extract(tar_info, file_name)

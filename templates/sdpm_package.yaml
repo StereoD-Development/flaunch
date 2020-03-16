@@ -31,9 +31,13 @@ props:
   sdpm_rc_file: |
     import os
     class SdpmRc(SdpmRcBase):
-      """ Default SDPM wrapper for fbuild """
-      def pathEnv(self):
-        return { "PATH": [self._path] }
+        """ Default SDPM wrapper for fbuild """
+        def pathEnv(self):
+            return { "PATH": [self._path] }
+
+  # -- This is where we can add additional logic for the exclusion
+  #    or inclusion of specific files within the sdpm deployment
+  sdpm_extra_zip_copy_args: ""
 
 
 #
@@ -46,6 +50,8 @@ func__sdpm_dev_build():
   - ":MKDIR -s {_sdpm_dev_build}"
   - ":FUNC get_complete_files_path()"
   - ":COPY -f {complete_files}/* {_sdpm_dev_build} -x launch.json"
+  # - ":ZIP {_sdpm_dev_build}/../sdpm.zip -f {_sdpm_dev_build}/*"
+  # - ":MOVE --force {_sdpm_dev_build}/../sdpm.zip {_sdpm_dev_build}/sdpm.zip"
   - ":WRITE {sdpm_rc_file} {_sdpm_dev_build}/sdpm.rc"
 
 
@@ -59,16 +65,33 @@ func__sdpm_clean_dev_build():
 #
 # Deployment of an sdpm package is another story completely.
 #
-func__sdpm_deploy_simple(sdpm_version, sdpm_fix_number):
-  - ":SET {_sdpm_deploy_location}/{sdpm_version}/{sdpm_fix_number}/{_sdpm_platform_arch} deployment_loc"
-  - ":DEL {deployment_loc}"
-  - ":MKDIR -s {deployment_loc}"
-  - ":FUNC get_complete_files_path()"
-  - ":CD {complete_files}"
-  - windows: ":ZIP ../{_sdpm_archive} -f ./ -n"
-    unix: tar -cvzf ../{_sdpm_archive} ./*
-  - ":COPY -f {build_dir}/* {deployment_loc}"
-  - ":MOVE -f ../{_sdpm_archive} {deployment_loc}"
+func__sdpm_deploy_simple(sdpm_version, sdpm_fix_number, to_platform):
+  - clause: '"{to_platform}".lower() == "windows"'
+    commands:
+      [
+        ":SET -g AMD64-Windows sdpm_arch",
+        ":SET -g sdpm.zip sdpm_archive",
+        ":SET {_sdpm_deploy_location}/{sdpm_version}/{sdpm_fix_number}/{sdpm_arch} deployment_loc",
+        ":DEL {deployment_loc}",
+        ":MKDIR -s {deployment_loc}",
+        ":FUNC get_complete_files_path()",
+        ":CD {complete_files}",
+        ":ZIP {sdpm_extra_zip_copy_args...} ../{sdpm_archive} -f ./ -n"
+      ]
+    else_commands:
+      [
+        # -- Linux deployment
+        ":SET -g x86_64-Linux sdpm_arch",
+        ":SET -g sdpm.tar.gz sdpm_archive",
+        ":SET {_sdpm_deploy_location}/{sdpm_version}/{sdpm_fix_number}/{sdpm_arch} deployment_loc",
+        ":DEL {deployment_loc}",
+        ":MKDIR -s {deployment_loc}",
+        ":FUNC get_complete_files_path()",
+        ":CD {complete_files}",
+        ":TAR {sdpm_extra_zip_copy_args...} ../{sdpm_archive} -f ./* -n"
+      ]
+  - ":COPY -f {build_dir}/* {deployment_loc} {sdpm_extra_zip_copy_args...}"
+  - ":MOVE -f ../{sdpm_archive} {deployment_loc}"
   - ":WRITE {sdpm_rc_file} {deployment_loc}/sdpm.rc"
   - ":CD --pop" # Go back to where we were
 
@@ -87,8 +110,16 @@ func__sdpm_deploy_flaunch_package(package_path, sdpm_verison, sdpm_fix_number):
 #
 func__sdpm_transfer_to_facilities(sdpm_full_version):
   - ':SET "verbose localize env prepend python/2.7.2 localize launch TransferTools -n signiant basic" sdpm_transfer_command'
-  - "sdpm {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{package}/{sdpm_full_version} tor bur"
-  - "sdpm {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{package}/{sdpm_full_version} tor pun"
+  - ':SET "python {_sdpm_platform_server}/s3d/resources/sw/scripts/sdpm.py" sdpm_command'
+  - "{sdpm_command...} {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{package}/{sdpm_full_version} tor bur"
+  - "{sdpm_command...} {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{package}/{sdpm_full_version} tor pun"
+
+
+func__sdpm_custom_transfer(dpackage, verison, hotfit):
+  - ':SET "verbose localize env prepend python/2.7.2 localize launch TransferTools -n signiant basic" sdpm_transfer_command'
+  - ':SET "python {_sdpm_platform_server}/s3d/resources/sw/scripts/sdpm.py" sdpm_command'
+  - "{sdpm_command...} {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{dpackage}/{sdpm_full_version} tor bur"
+  - "{sdpm_command...} {sdpm_transfer_command...} /mnt/isilon2/s3d/resources/sw/packages/{dpackage}/{sdpm_full_version} tor pun"
  
 
 build:
@@ -102,6 +133,7 @@ build:
   #
   post_build:
     - ["--sdpm", ":FUNC sdpm_dev_build()"]
+    - ":SUPER global.build.post_build"
 
 
 raw:
@@ -127,9 +159,25 @@ raw:
       - [sdpm_version, Major.Minor.Subminor version to deploy to, '[0-9]+\.[0-9]+\.[0-9]+']
       - [sdpm_fix_number, "#### fix number", '[0-9]{4}']
 
-    commands:
-      - ":FUNC sdpm_deploy_simple({sdpm_version}, {sdpm_fix_number})"
+    flags:
+      - ["winlin", Deploy for both Windows and Linux at the same time]
+      - ["transfer", "Auto-transfer the deployment (Use winlin and this to do it all)"]
 
+    commands:
+      - ":FUNC sdpm_deploy_simple({sdpm_version}, {sdpm_fix_number}, {platform})"
+      - ["--winlin",
+          {
+            # -- Deploy to the other platform
+            windows: ":FUNC sdpm_deploy_simple({sdpm_version}, {sdpm_fix_number}, Linux)",
+            unix: ":FUNC sdpm_deploy_simple({sdpm_version}, {sdpm_fix_number}, Windows)"
+          }
+        ]
+      - ["--transfer",
+          [
+            ":SET {sdpm_version}/{sdpm_fix_number} sdpm_full_version",
+            ":FUNC sdpm_transfer_to_facilities({sdpm_full_version})"
+          ]
+        ]
 
   sdpm_transfer:
 
@@ -138,7 +186,20 @@ raw:
       moment this is locked to Toronto as the source only)
 
     arguments:
-      - [sdpm_full_version, Major.Minor.Subminor/#### version to transfer, '[0-9]+\.[0-9]+\.[0-9]+\/[0-9]{4}']
+      - [sdpm_full_version, "Major.Minor.Subminor/#### version to transfer", '[0-9]+\.[0-9]+\.[0-9]+\/[0-9]{4}']
 
     commands:
       - ":FUNC sdpm_transfer_to_facilities({sdpm_full_version})"
+
+  sdpm_full_transfer:
+
+    help: |
+      Transfer a deployed package to other sdpm facilities (at the
+      moment this is locked to Toronto as the source only)
+
+    arguments:
+      - [dpackage, "pgk"]
+      - [sdpm_full_version, "Major.Minor.Subminor/#### version to transfer", '[0-9]+\.[0-9]+\.[0-9]+\/[0-9]{4}']
+
+    commands:
+      - ":FUNC sdpm_custom_transfer({dpackage}, {sdpm_full_version})"

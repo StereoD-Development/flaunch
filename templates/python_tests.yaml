@@ -1,0 +1,12 @@
+
+
+props:
+
+  python_test_file: "{source_dir}/tests/__init__.py"
+  python_test_args: []
+
+
+test:
+
+  commands:
+    - "python {python_test_file} {python_test_args...} {additional...}"

@@ -5,6 +5,7 @@ from __future__ import absolute_import
 
 import os
 import sys
+import shlex
 import platform
 import subprocess
 import logging
@@ -16,7 +17,6 @@ from common.platformdict import PlatformDict
 from common.abstract import _AbstractFLaunchData, FLaunchDataError
 from common import log
 from common import utils
-from common.utils import yaml
 from common import constants
 
 from .parse import BuildCommandParser
@@ -66,6 +66,10 @@ class BuildManager(_AbstractManager):
 
         self.prerequisite_check()
 
+        # -- Check for dependent build
+        if self.arguments.build_required:
+            self._build_required()
+
         self._pre_build_commands()
 
         self.build()
@@ -74,11 +78,16 @@ class BuildManager(_AbstractManager):
 
 
     @classmethod
-    def get_manager(cls, package, arguments):
+    def get_manager(cls, package, arguments=None, raise_=False):
         """
         Grab the manager based on the build.yaml file
         """
         from build import managers
+        if not arguments:
+            import argparse
+            arguments = argparse.Namespace()
+            arguments.custom = None
+            arguments.additional_arguments = []
 
         yaml_file = arguments.custom or cls.yaml_file_from_package(package)
         source_dir = None
@@ -88,7 +97,10 @@ class BuildManager(_AbstractManager):
 
         if not os.path.isfile(yaml_file):
             logging.critical('Invalid build yaml: {}'.format(yaml_file))
-            sys.exit(1)
+            if not raise_:
+                sys.exit(1)
+            else:
+                raise IOError('Cannot find build yaml: {}'.format(yaml_file))
 
         build_data = BuildFile(package, yaml_file)
         build_type = build_data['build']['type'] or 'basic'
@@ -143,6 +155,43 @@ class BuildManager(_AbstractManager):
         pass # Overload per build manager
 
     # -- Private Methods
+
+    def _build_required(self):
+        """
+        Given the build file, check if we have any packages that we require
+        and, if so, build them with any arguments placed in the build.yaml
+        :return: None
+        """
+        #
+        # Might as well treat it like a native command and avoid any kind
+        # of subprocess junk.
+        #
+        from build.start import build_parser
+
+        logging.debug(':Requirements Build:')
+        with log.log_indent():
+            requirements = self.build_file['requires']
+            if not requirements:
+                logging.info(self.package + ' has no known requirements')
+
+            if not isinstance(requirements, (list, tuple)):
+                requirements = [requirements]
+
+            parser = build_parser()
+            for requirement in requirements:
+
+                req_expanded = self.build_file.expand(requirement)
+
+                logging.info('Required: {}'.format(req_expanded))
+                arg_string = 'build {}{}'.format(
+                    '-v ' if log.is_verbose() else '',
+                    req_expanded
+                )
+                args, addon = parser.parse_known_args(shlex.split(arg_string))
+                args.additional_arguments = addon
+                args.func(args)
+                os.chdir(self.build_dir) # Reset the current dir every time
+
 
     def _pre_build_commands(self):
         """

@@ -1,3 +1,7 @@
 *.pyc
 __pycache__
 dev
+doc/build
+htmlcov
+.coverage
+debug.log
