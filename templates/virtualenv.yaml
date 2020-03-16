@@ -19,7 +19,7 @@ props:
 
   _py_backup_location:
     unix: "/usr/bin/python{use_python_version}"
-    windows: '{userprofile}/AppData/Local/Programs/Python/Python{use_python_version}/python.exe'
+    windows: '{userprofile|fs}/AppData/Local/Programs/Python/Python{use_python_version}/python.exe'
 
   # -- Publish properties to modify
   use_python_version:
@@ -29,6 +29,7 @@ props:
   buildenv: 'buildenv'
   pypi_server: "--index-url=http://sdt-pypi --trusted-host sdt-pypi"
   requirements_file: "{path}/requirements/requirements.txt"
+  external_requirements_file: "{path}/requirements/requirements.txt"
 
   reloc_activate:
     windows: |
@@ -116,7 +117,7 @@ func__build_environment():
     commands:
       - ':PRINT Creating virtual environment in {build_dir}'
       - ':SET "virtualenv --system-site-packages -p \"{python_exe}\"" venv_module'
-      - '{python_exe} -m {venv_module...} "{build_dir}/{buildenv}"'
+      - '"{python_exe}" -m {venv_module...} "{build_dir}/{buildenv}"'
       - windows:
           # - '{build_dir}/{buildenv}/scripts/activate.bat && pip install --upgrade pip {pypi_server...}'
           - ':COPY "{python_exe}/../DLLs/*" "{build_dir}/{buildenv}/DLLs" --force'
@@ -135,6 +136,12 @@ func__build_environment():
       - unix: ':PYTHON _chmod_file'
         windows: []
 
+  - [ '--external',
+      [
+        ':SET " --index-url=https://pypi.org" pypi_server',
+        ':SET "{external_requirements_file}" requirements_file'
+      ]
+    ]
   - ['!--skip-pip', {
       "windows": '{build_dir}/{buildenv}/scripts/activate.bat && pip install -r {requirements_file} {pypi_server...}',
       "unix": 'bash -c ''source "{build_dir}/buildenv/bin/activate" && pip install {pypi_server}  -r {requirements_file}'''
