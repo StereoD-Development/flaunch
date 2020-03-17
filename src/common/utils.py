@@ -84,7 +84,7 @@ def local_path(package, version=None, base_only=False):
     """
     if platform.system() == 'Windows':
         base = os.path.join(os.environ['APPDATA'], 'flux_launch', 'apps')
-    elif platform.system() == 'Linux':
+    elif platform.system() in ['Linux', 'Darwin']:
         base = os.path.join(
             os.path.expanduser('~'),
             '.local',
