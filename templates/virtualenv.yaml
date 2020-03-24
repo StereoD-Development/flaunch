@@ -138,7 +138,7 @@ func__build_environment():
 
   - [ '--external',
       [
-        ':SET " --index-url=https://pypi.org" pypi_server',
+        ':SET "" pypi_server',
         ':SET "{external_requirements_file}" requirements_file'
       ]
     ]

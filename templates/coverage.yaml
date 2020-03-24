@@ -58,7 +58,7 @@ test:
       # This is a default setup that passes the package to our command
       commands: ':SET "{coverage_launch} {coverage_exec} --arg {package} --arg {coverage_scan} --arg {coverage_pattern}"  _coverage_args'
       # This is a custom script location without args
-      else_commands: ":SET {coverage_launch} {coverage_exec} _coverage_args"
+      else_commands: ':SET "{coverage_launch} {coverage_exec}" _coverage_args'
 
     - ":COVER {_coverage_args...}"
 
