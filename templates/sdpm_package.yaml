@@ -73,7 +73,8 @@ func__sdpm_deploy_simple(sdpm_version, sdpm_fix_number, to_platform):
         ":SET -g sdpm.zip sdpm_archive",
         ":SET {_sdpm_deploy_location}/{sdpm_version}/{sdpm_fix_number}/{sdpm_arch} deployment_loc",
         ":DEL {deployment_loc}",
-        ":MKDIR -s {deployment_loc}",
+        ":SET {_sdpm_deploy_location}/temp/{sdpm_version}/{sdpm_fix_number}/{sdpm_arch} move_loc",
+        ":MKDIR -s {move_loc}",
         ":FUNC get_complete_files_path()",
         ":CD {complete_files}",
         ":ZIP {sdpm_extra_zip_copy_args...} ../{sdpm_archive} -f ./ -n"
@@ -85,12 +86,15 @@ func__sdpm_deploy_simple(sdpm_version, sdpm_fix_number, to_platform):
         ":SET -g sdpm.tar.gz sdpm_archive",
         ":SET {_sdpm_deploy_location}/{sdpm_version}/{sdpm_fix_number}/{sdpm_arch} deployment_loc",
         ":DEL {deployment_loc}",
-        ":MKDIR -s {deployment_loc}",
+        ":SET {_sdpm_deploy_location}/temp/{sdpm_version}/{sdpm_fix_number}/{sdpm_arch} move_loc",
+        ":MKDIR -s {move_loc}",
         ":FUNC get_complete_files_path()",
         ":CD {complete_files}",
         ":TAR {sdpm_extra_zip_copy_args...} ../{sdpm_archive} -f ./* -n"
       ]
-  - ":MOVE --make-dirs -f ../{sdpm_archive} {deployment_loc}/{sdpm_archive}" # We only need the archive
+  - ":MOVE --make-dirs -f ../{sdpm_archive} {move_loc}/{sdpm_archive}" # We only need the archive
+  - ":MKDIR -s {deployment_loc}"
+  - ":MOVE --make-dirs -f {move_loc}/{sdpm_archive} {deployment_loc}/{sdpm_archive}" # Move from temp to the real directory
   - ":WRITE {sdpm_rc_file} {deployment_loc}/sdpm.rc"
   - ":CD --pop" # Go back to where we were
 
