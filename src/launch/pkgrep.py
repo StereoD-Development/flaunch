@@ -333,6 +333,30 @@ def resolve_exec(ljson, env, arguments):
     return ljson.expand(exec_, env), args_consumed
 
 
+def resolve_bootstrap(ljson, env, arguments):
+    """
+    With a LaunchJson instance, we resolve any bootstrap commands that
+    make need to take place before moving to the main executable.
+    :param ljson: LaunchJson instance
+    :param env: Environment that we're building with
+    :param arguments: The arguments that, in the event {__ARGS__} is present,
+                      are supplied into
+    :return: ``list[str]``
+    """
+    bootstrap = ljson['bootstrap']
+    if bootstrap is None:
+        return []
+
+    if not isinstance(bootstrap, list):
+        bootstrap = [bootstrap]
+
+    for i, command in enumerate(bootstrap):
+        bootstrap[i] = ljson.expand(command, env)
+
+    return bootstrap
+
+
+
 def prep_env(ljson, env):
     """
     With a LaunchJson object and the active environment augmentation,

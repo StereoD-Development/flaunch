@@ -177,6 +177,15 @@ def launch_application(args):
             arguments = this_app.default_args()
         executable, args_consumed = pkgrep.resolve_exec(this_app, env, arguments)
 
+        # Fire any bootstrapping this application requires
+        bootstrap_commands = pkgrep.resolve_bootstrap(this_app, env, arguments)
+        if bootstrap_commands:
+            for command in bootstrap_commands:
+                bs_split = shlex.split(command.replace('\\', '/'))
+                code = utils.run_(bs_split, env, args.verbose)
+                if code != 0:
+                    sys.exit(code) # ??
+
     full_command = shlex.split(executable.replace('\\', '/'))
     if not args_consumed:
         full_command = full_command + arguments
