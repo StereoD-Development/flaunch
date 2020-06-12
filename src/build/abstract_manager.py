@@ -113,7 +113,7 @@ class _AbstractManager(object):
         :return: str
         """
         return os.path.join(
-            os.environ.get(constants.FLAUNCH_DEV_DIR, os.getcwd()),
+            os.environ.get(constants.FLAUNCH_DEV_DIR, os.path.dirname(os.getcwd())),
             package,
             'build.yaml'
         )

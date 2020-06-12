@@ -54,7 +54,7 @@ def _go_to_repo(args):
     :return: None
     """
     repo_path = os.path.join(
-        os.environ.get(constants.FLAUNCH_DEV_DIR, os.getcwd()),
+        os.environ.get(constants.FLAUNCH_DEV_DIR, os.path.dirname(os.getcwd())),
         args.package
     )
 
@@ -81,6 +81,8 @@ def _build(args):
     # peering into the build.yaml in the event it's different than the current
     # branch
     #
+    if args.package == '.':
+        args.package = os.path.basename(os.getcwd())
 
     if args.branch or args.tag:
         _go_to_repo(args)
