@@ -146,7 +146,8 @@ class BasicBuilder(manage.BuildManager):
                 if os.path.exists(gitignore):
                     with open(gitignore, 'r') as gi:
                         for l in gi:
-                            ignore_patterns.append(l.strip())
+                            if not l.startswith('#'):
+                                ignore_patterns.append(l.strip())
 
             if bf_build['exclude']:
                 ignore_patterns.extend([self.build_file.expand(v) for v in list(bf_build['exclude'])])
