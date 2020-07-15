@@ -69,7 +69,7 @@ def run_(command_and_args, custom_env = {}, verbose = False, build_file = None):
     if PY3:
         return subprocess.run(full_command).returncode
     else:
-        return subprocess.check_call(full_command)
+        return subprocess.check_call(" ".join(full_command), shell=True)
 
 
 def local_path(package, version=None, base_only=False):
