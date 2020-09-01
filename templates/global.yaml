@@ -18,7 +18,7 @@ props:
 
   # -- Overloaded as needed
 
-  flaunch_repo: "{_platform_server}/s3d/flux_packages/{package}"
+  flaunch_repo: "{_platform_server}/s3d/resources/sw/flaunch_packages/{package}"
 
   #
   # The install_path is important. For basic packages, they don't

@@ -123,6 +123,9 @@ def transfer_package(
             if facility in exclude:
                 continue
 
+            if facility == source:
+                continue
+
             #
             # Add the destination to our transfer_to listing
             #

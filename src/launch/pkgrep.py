@@ -36,6 +36,11 @@ def _download(info, dest, filename):
     elif info['type'] == 'file':
 
         path = unquote(info['uri']).replace('file:///', '', 1)
+
+        if path.startswith('file://'):
+            # Probably a UNC path - should probably move to regex
+            path = path.replace('file://', '//', 1)
+
         if not os.path.exists(path):
             attempt = '/' + path
             if not os.path.exists(attempt):
