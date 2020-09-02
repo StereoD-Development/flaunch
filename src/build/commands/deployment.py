@@ -12,6 +12,7 @@ import sys
 import logging
 
 from common import utils
+from common import communicate
 from types import ModuleType
 from build.command import _BuildCommand
 
@@ -57,3 +58,61 @@ class DeploymentCommand(_BuildCommand):
             wait= manager.arguments.skip_wait == False
         )
         return
+
+
+class ReleaseCommand(_BuildCommand):
+    """
+    Execute a release of a package
+    """
+    alias = 'RELEASE'
+
+    def description(self):
+        return ('Custom release command. Typically used to handle '
+               'custom addon packages (e.g. virtualenv)')
+
+
+    def populate_parser(self, parser):
+        parser.add_argument(
+            'package',
+            help='The package name to release'
+        )
+
+        parser.add_argument(
+            'version',
+            help='The version this release is under'
+        )
+
+        parser.add_argument(
+            '-f', '--force',
+            action='store_true',
+            help='Force the release even if validation does not pass'
+        )
+
+        parser.add_argument(
+            '-b', '--beta',
+            action='store_true',
+            help='Use to signify a pre-release of some sort'
+        )
+
+    def run(self, build_file):
+        """
+        Execute the registration
+        """
+        manager = build_file.get_manager()
+
+        from build.deploy import DeployManager
+        if not isinstance(manager, DeployManager):
+            raise RuntimeError('Cannot use :RELEASE outside of the deployment scope')
+
+        use_force = manager.arguments.force
+        use_beta = manager.arguments.beta
+
+        communicate.register_package(
+            self.data.package,
+            self.data.version,
+            method='post',
+            launch_data=None,
+            force=self.data.force or use_force,
+            pre_release=self.data.beta or use_beta
+        )
+

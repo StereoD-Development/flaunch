@@ -66,6 +66,16 @@ class DeployManager(_AbstractManager):
             force=self.arguments.force,
             pre_release=self.arguments.beta
         )
+
+        self._stage = 'register'
+        logging.debug(':Register Release:')
+        with log.log_indent():
+            self.build_file.add_attribute('release_forced', self.arguments.force)
+            self.build_file.add_attribute('release_beta', self.arguments.beta)
+            deploy_descrpitor = self.build_file[self.type_]
+            deploy_commands = deploy_descrpitor['release']
+            self.build_commands(None, deploy_commands)
+
         return result
 
 

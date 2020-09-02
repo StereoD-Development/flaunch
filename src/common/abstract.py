@@ -18,6 +18,8 @@ from .strexpr import _StringExpression
 from .platformdict import PlatformDict
 from . import log
 
+__version__ = (1, 3, 0)
+
 class FLaunchDataError(Exception):
     """ Error related to booting up a flaunch data """
     pass
@@ -28,7 +30,8 @@ class _AbstractFLaunchData(object):
     Abstract class that handles the expansion of values based
     on various input.
     """
-    SEARCH_REGEX = re.compile(r"\{+[^\{\n]+[^\s]\}")
+    ESCAPE_SEARCH_REGEX = re.compile(r"\{+\![^\{\n]+[^\s]\}")
+    SEARCH_REGEX = re.compile(r"\{+[^\!][^\{\n]+[^\s]\}")
 
     def __init__(self, package, path, data):
         """
@@ -40,6 +43,19 @@ class _AbstractFLaunchData(object):
 
         if data['name']:
             self._package = data['name']
+
+        required = data['min_version']
+        if required is None:
+            required = __version__
+        else:
+            required = tuple(required)
+
+        if required < __version__:
+            raise RuntimeError(
+                ('This version of flaunch/fbuild is too low'
+                ' for this package. Current version: {}'
+                ' Required: {}').format(__version__, data['min_version'])
+            )
 
         self._path = path.replace('\\', '/')
         self._data = data
@@ -158,6 +174,7 @@ class _AbstractFLaunchData(object):
             # Environ Variables take precedent
             env.update(os.environ)
 
+        found_to_escape = []
         should_append = False
         breakout = False
 
@@ -176,6 +193,7 @@ class _AbstractFLaunchData(object):
                 logging.error('Cannot expand null value!')
                 return value
 
+            found_to_escape = _AbstractFLaunchData.ESCAPE_SEARCH_REGEX.findall(value)
             found_to_resolve = _AbstractFLaunchData.SEARCH_REGEX.findall(value)
 
             for needs_resolve in found_to_resolve:
@@ -302,6 +320,10 @@ class _AbstractFLaunchData(object):
 
             with log.log_indent():
                 logging.debug('Set: {}={}'.format(key.upper(), env[key.upper()]))
+
+        # -- Escaped
+        for element in found_to_escape:
+            value = value.replace(element, '{' + element[2:])
 
         if breakout:
             return shlex.split(value)
