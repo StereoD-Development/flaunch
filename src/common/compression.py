@@ -170,7 +170,6 @@ def zip_files(name, files, root=None, mode='w', ignore=[], noisey=False):
         for file_name in files:
             file_name = file_name.replace("\\", "/")
 
-
             if any(fnmatch.fnmatch(file_name, p) for p in ignore):
                 continue
 
@@ -190,6 +189,14 @@ def zip_files(name, files, root=None, mode='w', ignore=[], noisey=False):
                         continue
 
                     if os.path.isdir(fpath):
+
+                        if os.path.islink(fpath):
+                            # This is a symlink directory
+                            if noisey:
+                                logging.info("Zipping (symlink dir): {}".format(fpath))
+                            archive_root = _clean(fpath.replace(root, '', 1))
+                            _zip_symlink(fpath, archive_root, zfile)
+                            continue
 
                         files = os.listdir(fpath)
                         if not files:
@@ -213,7 +220,14 @@ def zip_files(name, files, root=None, mode='w', ignore=[], noisey=False):
                             zfile.write(fpath, archive_root)
 
             if os.path.isdir(file_name):
-                _zip_action(file_name, os.listdir(file_name))
+                if os.path.islink(file_name):
+                    # This is a symlink directory
+                    if noisey:
+                        logging.info("Zipping (symlink dir): {}".format(file_name))
+                    archive_root = _clean(file_name.replace(root, '', 1))
+                    _zip_symlink(file_name, archive_root, zfile)
+                else:
+                    _zip_action(file_name, os.listdir(file_name))
             elif os.path.exists(file_name):
                 _zip_action(os.path.dirname(file_name), [os.path.basename(file_name)])
             else:
