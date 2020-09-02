@@ -146,7 +146,7 @@ func__build_environment():
 
   - ['!--skip-pip', {
       "windows": '{build_dir}/{buildenv}/scripts/activate.bat && pip install -r {requirements_file} {pypi_server...}',
-      "unix": 'bash -c ''source "{build_dir}/buildenv/bin/activate" && pip install {pypi_server}  -r {requirements_file}'''
+      "unix": '. \"{build_dir}/buildenv/bin/activate\" && pip install {pypi_server}  -r {requirements_file}'
     }]
 
 
