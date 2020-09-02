@@ -19,7 +19,7 @@ props:
   # -- Overloaded as needed
 
   flaunch_repo: "{_platform_server}/s3d/resources/sw/flaunch_packages/{package}"
-  deploy_zip_commands: ""
+  deploy_zip_commands: "-e __pycache__"
 
   #
   # The install_path is important. For basic packages, they don't

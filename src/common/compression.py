@@ -188,6 +188,12 @@ def zip_files(name, files, root=None, mode='w', ignore=[], noisey=False):
                     if any(fnmatch.fnmatch(fpath, p) for p in ignore):
                         continue
 
+                    archive_root = _clean(fpath.replace(root, '', 1))
+
+                    # Weird windows issue but save unc paths :|
+                    if archive_root.startswith('/') and not archive_root.startswith('//'):
+                        archive_root = archive_root[1:]
+
                     if os.path.isdir(fpath):
 
                         if os.path.islink(fpath):
@@ -202,14 +208,12 @@ def zip_files(name, files, root=None, mode='w', ignore=[], noisey=False):
                         if not files:
                             if noisey:
                                 logging.info("Zipping: {}".format(fpath))
-                            directory_path = _clean(fpath.replace(root, '', 1))
-                            zinfo = zipfile.ZipInfo(directory_path + '/')
+                            zinfo = zipfile.ZipInfo(archive_root + '/')
                             zfile.writestr(zinfo, '')
                         else:
                             _zip_action(fpath, files)
 
                     else:
-                        archive_root = _clean(fpath.replace(root, '', 1))
                         if os.path.islink(fpath):
                             if noisey:
                                 logging.info("Zipping (symlink): {}".format(fpath))
