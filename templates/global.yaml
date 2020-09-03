@@ -18,7 +18,8 @@ props:
 
   # -- Overloaded as needed
 
-  flaunch_repo: "{_platform_server}/s3d/flux_packages/{package}"
+  flaunch_repo: "{_platform_server}/s3d/resources/sw/flaunch_packages/{package}"
+  deploy_zip_commands: "-e __pycache__"
 
   #
   # The install_path is important. For basic packages, they don't
@@ -72,7 +73,7 @@ func__install_path_to_predeploy(predeploy_version):
         }
     ]
   - ":CD {complete_files}"
-  - ":ZIP {package_zip} -f {complete_files}/* -n"
+  - ":ZIP {package_zip} -f {complete_files}/* {deploy_zip_commands...} -n"
   - ":MOVE --make-dirs {package_zip} {_predeploy_folder}/{predeploy_version}/"
   - ":CD --pop"
 

@@ -76,6 +76,15 @@ props:
   include_win_runtime: "False"
   win_runtime_version: "140"
 
+  # deployment
+  deploy_zip_commands: "-e buildenv"
+  env_launch_json: |
+    {
+        "env": {
+            "PATH" : ["{!path}/{buildenv_activate_location}"],
+            "{package|upp}_ENV_PATH": "{!path}/{buildenv_activate_location}"
+        }
+    }
 
 # ------------------------------------------------------------------------------------
 # -- Functions
@@ -144,7 +153,7 @@ func__build_environment():
     ]
   - ['!--skip-pip', {
       "windows": '{build_dir}/{buildenv}/scripts/activate.bat && pip install -r {requirements_file} {pypi_server...}',
-      "unix": 'bash -c ''source "{build_dir}/buildenv/bin/activate" && pip install {pypi_server}  -r {requirements_file}'''
+      "unix": '. \"{build_dir}/buildenv/bin/activate\" && pip install {pypi_server}  -r {requirements_file}'
     }]
 
 
@@ -213,3 +222,35 @@ raw:
       - ["!--skip-main", ":SUPER sdpm_package.raw.sdpm_deploy.commands"]
       # Check if we're also deploying the environment
       - ["--deploy-environment", ":FUNC sdpm_deploy_environment({sdpm_version}, {sdpm_fix_number})"]
+
+
+deploy:
+  # Modifications to the deployment tooling to allow for deployment of
+  # the environment as well
+  pre_deploy:
+    - ":SUPER global.deploy.pre_deploy"
+    - ["--env",
+        [
+          ":SET {package}_env.{version}.zip env_zip",
+          ":CD {complete_files}",
+          ':WRITE {env_launch_json} {buildenv}/launch.json',
+          ":ZIP {env_zip} -f {buildenv}/* -n",
+          ":MOVE --make-dirs --force {env_zip} {_predeploy_folder}/{version}/",
+          ":CD --pop"
+        ]
+      ]
+
+  commands:
+    - ":SUPER global.deploy.commands"
+    - ["--env",
+        [
+          ":SET {package}_env.{version}.zip env_zip",
+          ":SET {_predeploy_folder}/{version}/{env_zip} deployable_env",
+          ":COPY -f --make-dirs {deployable_env} {flaunch_repo}_env/{platform}/",
+          ":DEPLOY {env_zip}"
+        ]
+      ]
+
+  release:
+    - ["--env", ":RELEASE {package}_env {version}"]
+
