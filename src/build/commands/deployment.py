@@ -9,7 +9,9 @@ from __future__ import print_function, absolute_import
 
 import os
 import sys
+import shutil
 import logging
+import platform
 
 from common import utils
 from common import communicate
@@ -33,6 +35,10 @@ class DeploymentCommand(_BuildCommand):
             'package',
             help='Zip package to deploy - this is just the name of the zip file, not the full path'
         )
+        parser.add_argument(
+            '-r', '--repo',
+            help='The base of the flaunch repo for this package to use when deploying'
+        )
 
 
     def run(self, build_file):
@@ -45,8 +51,34 @@ class DeploymentCommand(_BuildCommand):
         if not isinstance(manager, DeployManager) or manager.stage != 'deploy':
             raise RuntimeError('Cannot use :DEPLOY command when not in the deploy:commands')
 
-        destinations = manager.arguments.destination
+        # Check if we are an agnostic package we can deploy to
+        # other platforms automatically
         platforms = manager.arguments.platform
+
+        if self.data.repo:
+            this_platform = platform.system()
+            this_package = os.path.join(
+                self.data.repo, this_platform, self.data.package
+            )
+
+            if build_file[manager.type_]['agnostic']:
+                others = set(['Windows', 'Linux', 'Darwin']) - set([this_platform])
+                for plat in others:
+                    other_location = os.path.join(
+                        self.data.repo, plat, self.data.package
+                    )
+                    if not os.path.exists(other_location):
+                        try:
+                            os.makedirs(os.path.dirname(other_location))
+                        except OSError:
+                            pass
+                        logging.info('Agnostic deployment to: {}'.format(plat))
+                        shutil.copy2(this_package, other_location)
+
+                if not platforms:
+                    platforms = list(others) + [this_platform]
+
+        destinations = manager.arguments.destination
         exclude = manager.arguments.exclude
 
         transfer.transfer_package(

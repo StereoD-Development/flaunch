@@ -107,10 +107,12 @@ build:
 
 deploy:
 
+  # Is this package deployable for any platform?
+  agnostic: false
+
   #
   # - version: Parameter provided by fbuild
   #
-
   pre_deploy:
     - ":FUNC install_path_to_predeploy({version})"
 
@@ -118,4 +120,4 @@ deploy:
     - ":SET {package}.{version}.zip package_zip"
     - ":SET {_predeploy_folder}/{version}/{package_zip} deployable_files"
     - ":COPY -f --make-dirs {deployable_files} {flaunch_repo}/{platform}/"
-    - ":DEPLOY {package_zip}"
+    - ":DEPLOY {package_zip} -r {flaunch_repo}"

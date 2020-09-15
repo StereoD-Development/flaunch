@@ -6,6 +6,7 @@ from __future__ import absolute_import, print_function
 import os
 import sys
 import argparse
+import platform
 import logging
 import traceback
 
@@ -23,6 +24,7 @@ from build import prep
 from build import raw
 
 from common import constants
+from common import transfer
 from common import gitutil
 from common import utils
 from common import log
@@ -202,6 +204,50 @@ def _compose(args):
     composer.exec_()
 
 
+def _transfer(args):
+    """
+    Transfer packages based on the arguments
+    """
+    logging.info('Initialize transfer interface...')
+
+    destinations = args.destination
+    if not destinations:
+        logging.info('No destinations supplied, ignoring')
+        sys.exit(0)
+
+    package_to_version = {}
+    for package in args.package:
+
+        if '/' in package:
+            package, version = package.split('/', 1)
+            package_to_version[package] = version
+            continue
+
+        if not args.version:
+            logging.error('Version not provided for {}. Please provide'
+                          .format(package))
+            sys.exit(1)
+        package_to_version[package] = args.version
+
+    platforms = set([platform.system()])
+    if args.all_platforms:
+        platforms |= set(['Windows', 'Linux', 'Darwin'])
+
+    build_file = utils.flaunch_build_file()
+
+    for package, version in package_to_version.items():
+        logging.info('Transfer: {}/{}'.format(package, version))
+        package_file = '{}.{}.zip'.format(package, version)
+        transfer.transfer_package(
+            build_file,
+            package_name=package,
+            package_file=package_file,
+            destinations=args.destination,
+            platforms=list(platforms),
+            wait=False # Option?
+        )
+
+
 def _test(args):
     """
     Execute a test
@@ -319,6 +365,15 @@ def build_parser():
     tester.add_argument('-c', '--custom', nargs=2, metavar=('YAML', 'SOURCE'), help='Custom yaml file and source directory location')
     tester.add_argument('package', help='The package that we\'re running the test on')
     tester.set_defaults(func=_test, _flaunch_parser=tester)
+
+    # -- Transfer Utilities
+    transferer = subparsers.add_parser('transfer', description='Transfer packages about the world')
+    _fill_parser_with_defaults(transferer)
+    transferer.add_argument('-p', '--package', action='append', help='Package(s) that we want to shuttle. If a specific version should be transfered, use <package>/<version>')
+    transferer.add_argument('-a', '--all-platforms', action='store_true', help='Transfer all platforms available')
+    transferer.add_argument('-d', '--destination', action='append', help='Facility codes to transfered')
+    transferer.add_argument('version', nargs='?', help='Default version to use if not ')
+    transferer.set_defaults(func=_transfer, _flaunch_parser=transferer)
 
     initializer = subparsers.add_parser('init', description='Initialize a package with a build.yaml')
     _fill_parser_with_defaults(initializer)

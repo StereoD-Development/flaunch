@@ -64,7 +64,8 @@ def transfer_package(
     destinations=None,
     exclude=None,
     platforms=None,
-    wait=True
+    wait=True,
+    package_name=None
     ):
     """
     Transfer a package to other facilities so they might use it.
@@ -73,6 +74,7 @@ def transfer_package(
     :param exclude: list[str] of facilities to ignore (default is none)
     :param platforms: list[str] of python platform.system() to transfer (default is current)
     :param wait: Should we wait for the transfer to complete?
+    :param package_name: ``str`` - Optional package name to transfer with
     :return: bool - if everything went as planned 
     """
     server = new_server(TransferHandler, port=TRANSFER_PORT)
@@ -107,10 +109,17 @@ def transfer_package(
     # The transfer service for the time being is Linux paths only
     # which means we need to convert that data however we can.
     #
+    # FIXME: This should be transitioned to use atom. We need to add the
+    # ability to request based on a platform. Then we can just ask for the
+    # path to the package (ignoring the version)
+    #
     with build_file.platform_override('linux'):
         deploy_folder = build_file.expand(
             build_file['props']['flaunch_repo']
         )
+
+    if package_name:
+        deploy_folder = os.path.dirname(deploy_folder) + '/' + package_name
 
     with server:
         # We need the path for each platform, for now we'll lock this
