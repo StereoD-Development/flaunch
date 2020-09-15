@@ -1,0 +1,35 @@
+#
+# Template for building, testing, and deploying through jenkins
+#
+
+props:
+
+  # Build arguments passed to the build routine for jenkins.
+  jenkins_build_args: ""
+
+  # Build version that's passed to the deployment command of 
+  # the build process via jenkins
+  deploy_version: [1, 3, 0]
+
+raw:
+
+  jenkins_build:
+    help: |
+      Reserved for the jenkins build environment. Build a push out the files as required
+      to the filesystem.
+
+    commands:
+      - "fbuild -v {package} {jenkins_build_args}"
+      - "fbuild deploy -v {package} {deploy_version|join('.')}.{build_number|zpad(4)} -t -d tor"
+      - "fbuild transfer -v -p {package}/{deploy_version|join('.')}.{build_number|zpad(4)} --all-platforms -d pun"
+
+  jenkins_release:
+    help: |
+      Reserved for the jenkins build environment. Release a given version of the
+      software based on the build and deploy version
+
+    commands:
+      - clause: '"{prerelease}" == "true"'
+        commands: ":SET '--beta' release_args"
+        else_commands: ":SET '' release_args"
+      - "fbuild release -v {package} {deploy_version|join('.')}.{build_number|zpad(4)} {release_args}"
