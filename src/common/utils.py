@@ -277,6 +277,20 @@ def load_from_source(filepath, name=None):
         return imp.load_source(name, filepath)
 
 
+def flaunch_build_file():
+    """
+    Obtain the BuildFile for this flaunch package. Typically
+    used for default internal actions. Avoid overuse
+    :return: ``BuildFile`` for this flaunch package
+    """
+    from build.buildfile import BuildFile
+    buildyaml = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        'build.yaml'
+    )
+    return BuildFile('flaunch', buildyaml)
+
+
 default_build_yaml = """\
 #
 # The {package} build.yaml

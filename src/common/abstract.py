@@ -53,8 +53,12 @@ class _AbstractFLaunchData(object):
         if required < __version__:
             raise RuntimeError(
                 ('This version of flaunch/fbuild is too low'
-                ' for this package. Current version: {}'
-                ' Required: {}').format(__version__, data['min_version'])
+                ' for {}. Current version: {}'
+                ' Required: {}').format(
+                    self._package,
+                    __version__,
+                    data['min_version']
+                )
             )
 
         self._path = path.replace('\\', '/')

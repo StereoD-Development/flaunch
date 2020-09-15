@@ -153,7 +153,12 @@ def launch_application(args):
             [args.application], packages, builds=build_locations, all_ljsons=launch_jsons
         )
 
+    prepped = set()
     for launch_json in resolved_launch + list(launch_jsons):
+        if launch_json.package in prepped:
+            continue # We've already collected this
+        prepped.add(launch_json.package)
+
         logging.debug('Prepping: {}'.format(launch_json.package))
         pkgrep.prep_env(launch_json, env)
         logging.debug('-- Done Prepping: {}'.format(launch_json.package))
