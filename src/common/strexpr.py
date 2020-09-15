@@ -294,3 +294,14 @@ class Dirname(_StringExpression):
     def run(self, value, *args):
         import os
         return os.path.dirname(value)
+
+
+class ZPad(_StringExpression):
+    """
+    Given a numnber, pad it with zeros as required
+    zpad(3)
+    """
+    alias = 'zpad'
+
+    def run(self, value, *args):
+        return ('%0{}d'.format(int(args[0]))) % int(value)
