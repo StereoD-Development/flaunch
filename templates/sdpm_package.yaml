@@ -216,3 +216,49 @@ raw:
 
     commands:
       - ":FUNC sdpm_custom_transfer({dpackage}, {sdpm_full_version})"
+
+  #
+  # Utilities for jenkins build machine
+  #
+  jenkins_build_sdpm:
+
+    help: |
+      Reserved for the jenkins build environment for various packages. This will build the
+      sdpm .zip or .tar.gz and deploy it to the pre_deploy location for the package.
+
+    flags:
+      - ["winlin", Deploy for both Windows and Linux at the same time]
+
+    commands:
+      #
+      # Prep work to deploy to the pre_deploy folder
+      #
+      - ":SET {deploy_version|join('.')} sdpm_version"
+      - ":SET {build_number|zpad(4)} sdpm_fix_number"
+      - ":SET {_sdpm_platform_server}/s3d/resources/sw/temp/flux_pre_deploy/{package} _sdpm_deploy_location"
+
+      - ":FUNC sdpm_deploy_simple({sdpm_version}, {sdpm_fix_number}, {platform})"
+      - ["--winlin",
+          {
+            # -- Deploy to the other platform
+            windows: ":FUNC sdpm_deploy_simple({sdpm_version}, {sdpm_fix_number}, Linux)",
+            unix: ":FUNC sdpm_deploy_simple({sdpm_version}, {sdpm_fix_number}, Windows)"
+          }
+        ]
+
+  jenkins_release_sdpm:
+
+    help: |
+      Reserved for the jenkins build environment for various packages.
+      This will take a pre deployed build and move it to the location
+      on disk for full use.
+
+    commands:
+      #
+      # Copy from the pre-deployment to the main deployment
+      #
+      - ":SET {deploy_version|join('.')} sdpm_version"
+      - ":SET {build_number|zpad(4)} sdpm_fix_number"
+      - ":SET {_sdpm_platform_server}/s3d/resources/sw/temp/flux_pre_deploy/{package}/{sdpm_version}/{sdpm_fix_number} sdpm_pre_deploy_location"
+      - ":COPY -a --make-dirs {sdpm_pre_deploy_location}/* {_sdpm_deploy_location}/{sdpm_version}/{sdpm_fix_number}"
+      - "fbuild raw -v {package} sdpm_trasnsfer {sdpm_version}/{sdpm_fix_number}"
