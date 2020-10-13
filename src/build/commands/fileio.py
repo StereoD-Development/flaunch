@@ -405,12 +405,10 @@ class TarCommand(_BuildCommand):
         """
         Run the command, taring up files as needed
         """
-        raw_files = self.data.file
-        archive = self.data.archive
-
         from common import compression
 
         raw_files = self.data.file
+        archive = self.data.archive
 
         if self.data.extract:
             compression.untar_files(
