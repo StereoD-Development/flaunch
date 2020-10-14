@@ -28,6 +28,9 @@ raw:
       Reserved for the jenkins build environment. Release a given version of the
       software based on the build and deploy version
 
+    args:
+      - ['prerelease', 'Should this be released as a pre-release version?']
+
     commands:
       - clause: '"{prerelease}" == "true"'
         commands: ":SET '--beta' release_args"
