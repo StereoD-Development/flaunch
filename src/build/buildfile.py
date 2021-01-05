@@ -4,6 +4,7 @@ build.yaml file toolkit
 from __future__ import absolute_import
 
 import os
+import re
 import sys
 import logging
 from copy import deepcopy
@@ -150,8 +151,8 @@ class BuildFile(_AbstractFLaunchData):
         if '(' in name:
             found_supplied = name[name.index('(')+1:name.index(')')]
             if found_supplied:
-                found_supplied = found_supplied.split(',')
-                supplied_args = list(map(lambda x: x.strip(), found_supplied))
+                found_supplied = re.split(r'[^\\],', found_supplied)
+                supplied_args = list(map(lambda x: x.strip().replace('\\,', ','), found_supplied))
 
             name = name[:name.index('(')]
 
@@ -165,8 +166,8 @@ class BuildFile(_AbstractFLaunchData):
                     # we need to supply
                     func_args_string = key[key.index('(')+1:key.index(')')]
                     if func_args_string:
-                        func_args = func_args_string.split(',')
-                        arguments = [a.strip() for a in func_args]
+                        func_args = re.split(r'[^\\],', func_args_string)
+                        arguments = [a.strip().replace('\\,', ',') for a in func_args]
 
                     if len(supplied_args) > len(arguments):
                         raise RuntimeError('Invalid number of arguments for {}.'

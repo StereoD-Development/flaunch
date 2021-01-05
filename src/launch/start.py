@@ -150,8 +150,34 @@ def launch_application(args):
     resolved_launch = []
     if not args.run:
         resolved_launch = pkgrep.resolve_packages(
-            [args.application], packages, builds=build_locations, all_ljsons=launch_jsons
+            [args.application], packages,
+            builds=build_locations,
+            all_ljsons=launch_jsons,
+            launching=True
         )
+
+        # -- Swappable dependency management
+        this_app = resolved_launch[-1]
+        for swap_from, swap_to in this_app.swap():
+            all_packages = [lj.package for lj in resolved_launch]
+
+            index = -1
+            if swap_from in all_packages:
+                index = all_packages.index(swap_from)
+                resolved_launch.pop(index)
+
+            if swap_to in all_packages:
+                continue
+            else:
+                packages = pkgrep.resolve_packages(
+                    [swap_to], packages,
+                    builds=build_locations,
+                    all_ljsons=launch_jsons
+                )
+                for lj in packages:
+                    if lj.package not in all_packages:
+                        resolved_launch.insert(index, lj)
+                        index += 1
 
     prepped = set()
     for launch_json in resolved_launch + list(launch_jsons):
@@ -180,7 +206,32 @@ def launch_application(args):
         this_app = resolved_launch[-1]
         if not arguments and this_app.default_args():
             arguments = this_app.default_args()
-        executable, args_consumed = pkgrep.resolve_exec(this_app, env, arguments)
+
+        resolve_env = {}
+        resolve_env.update(env)
+        checked = set()
+        for ljson in launch_jsons:
+            if ljson.package in checked:
+                continue
+
+            checked.add(ljson.package)
+            prep = ljson.prep_env()
+            for key in prep:
+                key = ljson.expand(key, env)
+                resolve_env[key] = ljson.expand(prep[key], resolve_env)
+
+        executable, args_consumed = pkgrep.resolve_exec(
+            this_app, resolve_env, arguments
+        )
+
+        # Fire any bootstrapping this application requires
+        bootstrap_commands = pkgrep.resolve_bootstrap(this_app, env, arguments)
+        if bootstrap_commands:
+            for command in bootstrap_commands:
+                bs_split = shlex.split(command.replace('\\', '/'))
+                code = utils.run_(bs_split, env, args.verbose)
+                if code != 0:
+                    sys.exit(code) # ??
 
     full_command = shlex.split(executable.replace('\\', '/'))
     if not args_consumed:
@@ -255,10 +306,10 @@ def main():
     try:
         args = parser.parse_args()
     except:
-
-        # Ignore help requests
         if '-h' in sys.argv or '--help' in sys.argv:
-            return 0
+            # Ignore help requests
+            if len(sys.argv) <= 2:
+                return 0
 
         if sys.argv[1] in ('launch', 'path', 'clear', 'update'):
             return 1

@@ -56,7 +56,7 @@ def _go_to_repo(args):
     :return: None
     """
     repo_path = os.path.join(
-        os.environ.get(constants.FLAUNCH_DEV_DIR, os.getcwd()),
+        os.environ.get(constants.FLAUNCH_DEV_DIR, os.path.dirname(os.getcwd())),
         args.package
     )
 
@@ -83,6 +83,8 @@ def _build(args):
     # peering into the build.yaml in the event it's different than the current
     # branch
     #
+    if args.package == '.':
+        args.package = os.path.basename(os.getcwd())
 
     if args.branch or args.tag:
         _go_to_repo(args)
@@ -377,6 +379,8 @@ def build_parser():
 
     initializer = subparsers.add_parser('init', description='Initialize a package with a build.yaml')
     _fill_parser_with_defaults(initializer)
+    initializer.add_argument('-f', '--file', action='append', help='Add files to the build command')
+    initializer.add_argument('-m', '--merge', help='yaml file that will be merged into the new build.yaml')
     initializer.set_defaults(func=_initialize, _flaunch_parser=initializer)
 
     return parser

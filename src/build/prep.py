@@ -3,6 +3,7 @@ Prep work get's a set of commands as well!
 """
 from __future__ import absolute_import
 
+import logging
 from common import log
 
 from .parse import BuildCommandParser

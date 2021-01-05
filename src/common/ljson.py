@@ -60,6 +60,20 @@ class LaunchJson(_AbstractFLaunchData):
         return self['requires'] or []
 
 
+    def standalone_requires(self):
+        """
+        :return: ``list[str]`` - required pacakges when launching
+        """
+        return self['standalone_requires'] or self.requires()
+
+
+    def prep_env(self):
+        """
+        :return: ``dict``
+        """
+        return self['prep_env'] or {}
+
+
     def extends(self):
         """
         :return: str of package this one extends
@@ -72,6 +86,13 @@ class LaunchJson(_AbstractFLaunchData):
         :return: list of default arguments
         """
         return self['default_args'] or None
+
+
+    def swap(self):
+        """
+        :return: ``list[tuple]``
+        """
+        return self['swap'] or []
 
 
     def set_base(self, base_ljson):

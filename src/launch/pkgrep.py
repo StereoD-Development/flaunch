@@ -98,7 +98,7 @@ def _get_package(package, version=None, info=None, builds=[], force=False):
     """
     logging.debug("Package version: " + (version if version else '<highest>'))
 
-    is_dev = version == 'dev'
+    is_dev = bool(os.environ.get('FLAUNCH_ALL_DEV', version == 'dev'))
 
     if is_dev:
         info = {
@@ -202,7 +202,7 @@ def _get_package(package, version=None, info=None, builds=[], force=False):
     return lj
 
 
-def resolve_packages(package_list, retrieved, builds=[], all_ljsons=None):
+def resolve_packages(package_list, retrieved, builds=[], all_ljsons=None, launching=False):
     """
     Given a set of packages, unwrap the requirements
     """
@@ -243,7 +243,11 @@ def resolve_packages(package_list, retrieved, builds=[], all_ljsons=None):
         if main_package is None:
             main_package = current_launch
 
-        requirements = current_launch.requires();
+        if launching:
+            requirements = current_launch.standalone_requires()
+        else:
+            requirements = current_launch.requires()
+
         if requirements:
             logging.debug('Package: {} - requires: {}'.format(
                 package, ', '.join(requirements)
@@ -336,6 +340,30 @@ def resolve_exec(ljson, env, arguments):
         sys.exit(1)
 
     return ljson.expand(exec_, env), args_consumed
+
+
+def resolve_bootstrap(ljson, env, arguments):
+    """
+    With a LaunchJson instance, we resolve any bootstrap commands that
+    make need to take place before moving to the main executable.
+    :param ljson: LaunchJson instance
+    :param env: Environment that we're building with
+    :param arguments: The arguments that, in the event {__ARGS__} is present,
+                      are supplied into
+    :return: ``list[str]``
+    """
+    bootstrap = ljson['bootstrap']
+    if bootstrap is None:
+        return []
+
+    if not isinstance(bootstrap, list):
+        bootstrap = [bootstrap]
+
+    for i, command in enumerate(bootstrap):
+        bootstrap[i] = ljson.expand(command, env)
+
+    return bootstrap
+
 
 
 def prep_env(ljson, env):

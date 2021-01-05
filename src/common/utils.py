@@ -306,6 +306,7 @@ name: {package}
 build:
 
   type: basic
+{files}
 """
 
 def initialize_pacakge(args):
@@ -318,10 +319,37 @@ def initialize_pacakge(args):
 
     package_name = os.path.basename(os.getcwd())
 
+    files = ''
+    if args.file:
+        files = '\n  files:\n    - '
+        files += '\n    - '.join(args.file)
+
     with open('build.yaml', 'w') as f:
-        f.write(default_build_yaml.format(
-            package = package_name
-        ))
+        yaml_string = default_build_yaml.format(
+            package=package_name,
+            files=files
+        )
+
+        if args.merge:
+            import yaml
+            left_data = yaml.safe_load(yaml_string)
+
+            with open(args.merge, 'r') as right:
+                right_data = yaml.safe_load(right.read())
+
+            output = dict(merge_dicts(left_data, right_data))
+
+            yaml_start = yaml.safe_dump(
+                {'name': output.pop('name')},
+                indent=4,
+            )
+            yaml_end = yaml.safe_dump(output, indent=4)
+
+            yaml_string  = '# The {} package\n\n'.format(package_name)
+            yaml_string += yaml_start + '\n\n'
+            yaml_string += yaml_end
+
+        f.write(yaml_string)
 
     logging.info('Initialized - created build.yaml! Welcome to fbuild.')
 

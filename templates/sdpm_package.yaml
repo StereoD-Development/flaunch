@@ -62,6 +62,16 @@ func__sdpm_clean_dev_build():
   - ":DEL {source_dir}/dev"
 
 
+func__sdpm_set_platform(to_platform):
+  - clause: '"{to_platform}".lower() == "windows"'
+    commands:
+      - ":SET -g AMD64-Windows sdpm_arch"
+      - ":SET -g sdpm.zip sdpm_archive"
+    else_commands:
+      - ":SET -g x86_64-Linux sdpm_arch"
+      - ":SET -g sdpm.tar.gz sdpm_archive"
+
+
 #
 # Deployment of an sdpm package is another story completely.
 #
