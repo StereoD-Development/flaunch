@@ -379,6 +379,8 @@ def build_parser():
 
     initializer = subparsers.add_parser('init', description='Initialize a package with a build.yaml')
     _fill_parser_with_defaults(initializer)
+    initializer.add_argument('-f', '--file', action='append', help='Add files to the build command')
+    initializer.add_argument('-m', '--merge', help='yaml file that will be merged into the new build.yaml')
     initializer.set_defaults(func=_initialize, _flaunch_parser=initializer)
 
     return parser

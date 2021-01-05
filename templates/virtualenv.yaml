@@ -83,6 +83,9 @@ props:
         "env": {
             "PATH" : ["{!path}/{buildenv_activate_location}"],
             "{package|upp}_ENV_PATH": "{!path}/{buildenv_activate_location}"
+        },
+        "prep_env": {
+            "{package|upp}_ENV_PATH": "{!path}/{buildenv_activate_location}"
         }
     }
 
@@ -183,6 +186,9 @@ dev:
   # -- Augment the development environment when testing locally
   ignore:
     - '{package}_env'
+
+  prep_env:
+    '{package|upp}_ENV_PATH': '{build_dir}/buildenv/{buildenv_activate_location}'
 
   env:
     '{package|upp}_ENV_PATH': '{build_dir}/buildenv/{buildenv_activate_location}'

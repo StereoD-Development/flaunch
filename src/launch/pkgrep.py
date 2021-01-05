@@ -98,7 +98,7 @@ def _get_package(package, version=None, info=None, builds=[], force=False):
     """
     logging.debug("Package version: " + (version if version else '<highest>'))
 
-    is_dev = version == 'dev'
+    is_dev = bool(os.environ.get('FLAUNCH_ALL_DEV', version == 'dev'))
 
     if is_dev:
         info = {
@@ -202,7 +202,7 @@ def _get_package(package, version=None, info=None, builds=[], force=False):
     return lj
 
 
-def resolve_packages(package_list, retrieved, builds=[], all_ljsons=None):
+def resolve_packages(package_list, retrieved, builds=[], all_ljsons=None, launching=False):
     """
     Given a set of packages, unwrap the requirements
     """
@@ -243,7 +243,11 @@ def resolve_packages(package_list, retrieved, builds=[], all_ljsons=None):
         if main_package is None:
             main_package = current_launch
 
-        requirements = current_launch.requires();
+        if launching:
+            requirements = current_launch.standalone_requires()
+        else:
+            requirements = current_launch.requires()
+
         if requirements:
             logging.debug('Package: {} - requires: {}'.format(
                 package, ', '.join(requirements)
